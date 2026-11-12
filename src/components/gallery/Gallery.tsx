@@ -65,10 +65,10 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
         )}
       </header>
 
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 pt-20 pb-[190px] sm:px-8 sm:pt-24 sm:pb-[calc(22vh+40px)]">
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4 pt-20 pb-[150px] sm:px-8 sm:pt-24 sm:pb-[calc(16vh+56px)]">
         {status ??
           (winners && winners.length > 0 ? (
-            <ul className="flex w-full max-w-[1200px] list-none flex-wrap justify-center gap-x-6 gap-y-20 sm:gap-x-10 sm:gap-y-24">
+            <ul className="flex w-full max-w-[1200px] list-none flex-wrap justify-center gap-x-6 gap-y-20 sm:gap-x-9 sm:gap-y-20">
               {winners.map((w, i) => (
                 <Frame
                   key={w.id}
@@ -95,11 +95,11 @@ export function GallerySkeleton({ count = 5 }: { count?: number }) {
     <div
       role="status"
       aria-label="우수자 정보를 불러오는 중"
-      className="flex w-full max-w-[1200px] flex-wrap justify-center gap-x-6 gap-y-20 sm:gap-x-10"
+      className="flex w-full max-w-[1200px] flex-wrap justify-center gap-x-6 gap-y-20 sm:gap-x-9 sm:gap-y-20"
     >
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="w-[calc(50%-0.75rem)] max-w-[220px] sm:w-[200px] lg:w-[208px]">
-          <div className="rounded-[4px] bg-[#1a2a52] p-[11px] opacity-60">
+        <div key={i} className="w-[calc(50%-0.75rem)] max-w-[190px] sm:w-[174px] lg:w-[180px]">
+          <div className="rounded-[4px] bg-[#1a2a52] p-[9px] opacity-60">
             <div className="aspect-[3/4]">
               <Silhouette pulse />
             </div>

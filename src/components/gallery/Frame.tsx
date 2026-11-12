@@ -31,7 +31,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
   return (
     <motion.li
       data-frame-id={winner.id}
-      className="group/frame relative w-[calc(50%-0.75rem)] max-w-[220px] sm:w-[200px] lg:w-[208px]"
+      className="group/frame relative w-[calc(50%-0.75rem)] max-w-[190px] sm:w-[174px] lg:w-[180px]"
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 60, scale: 0.92 }}
       animate={show ? { opacity: 1, y: 0, scale: 1 } : undefined}
       transition={{ delay: reduce ? 0 : 0.25 + (index * FRAME_STAGGER_MS) / 1000, duration: reduce ? 0.3 : 0.9, ease: [0.2, 0.8, 0.2, 1] }}
@@ -79,7 +79,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
         {/* 액자 */}
         <span
           className={cn(
-            'relative block rounded-[4px] p-[9px] transition-shadow duration-500 sm:p-[11px]',
+            'relative block rounded-[4px] p-[7px] transition-shadow duration-500 sm:p-[9px]',
             'shadow-[0_26px_40px_-8px_rgba(0,0,0,0.75),0_8px_14px_rgba(0,0,0,0.5)]',
             'group-hover:shadow-[0_34px_50px_-8px_rgba(0,0,0,0.8),0_0_32px_color-mix(in_oklab,var(--c-accent)_45%,transparent)]',
             highlight && 'shadow-[0_0_48px_color-mix(in_oklab,var(--c-accent)_60%,transparent)]',
@@ -93,7 +93,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
               boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
             }}
           >
-            <span className="block bg-[#0b1430] p-[7px] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)] sm:p-[9px]">
+            <span className="block bg-[#0b1430] p-[6px] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)] sm:p-[7px]">
               <span className="relative block aspect-[3/4] overflow-hidden bg-[#0b1530]">
                 {visible && winner.photo_url ? (
                   <img src={winner.photo_url} alt={`${winner.name} 증명사진`} className="h-full w-full object-cover" loading="lazy" />
