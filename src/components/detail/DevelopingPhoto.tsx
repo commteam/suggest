@@ -6,11 +6,11 @@ export function DevelopingPhoto({ src, alt, replayKey }: { src: string | null; a
   const reduce = useReducedMotion();
   return (
     <div
-      className="rounded-[4px] p-[12px] shadow-[0_30px_60px_-10px_rgba(0,0,0,0.8),0_0_40px_color-mix(in_oklab,var(--c-accent)_25%,transparent)]"
+      className="rounded-[4px] p-[9px] shadow-[0_30px_60px_-10px_rgba(0,0,0,0.8),0_0_40px_color-mix(in_oklab,var(--c-accent)_25%,transparent)]"
       style={{ background: 'var(--g-frame)' }}
     >
-      <div className="rounded-[2px] p-[3px]" style={{ background: 'var(--c-accent-dark)' }}>
-        <div className="bg-[#0b1430] p-[10px] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
+      <div className="rounded-[2px] p-[2px]" style={{ background: 'var(--c-accent-dark)' }}>
+        <div className="bg-[#0b1430] p-[8px] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
           <div className="relative aspect-[3/4] overflow-hidden bg-[#0b1530]">
             {src ? (
               <motion.img
