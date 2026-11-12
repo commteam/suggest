@@ -11,7 +11,7 @@ describe('useIntroTimeline', () => {
     const onCancel = vi.fn();
     const onDone = vi.fn();
     const { result } = renderHook(() =>
-      useIntroTimeline({ length: 'standard', reduced: false, startFinished: false, onCue, onCancel, onDone }),
+      useIntroTimeline({ mode: 'cinematic', length: 'standard', reduced: false, startFinished: false, onCue, onCancel, onDone }),
     );
     act(() => result.current.start());
     act(() => {
@@ -35,16 +35,40 @@ describe('useIntroTimeline', () => {
 
   it('언마운트 시 타이머 정리', () => {
     const { result, unmount } = renderHook(() =>
-      useIntroTimeline({ length: 'short', reduced: false, startFinished: false }),
+      useIntroTimeline({ mode: 'cinematic', length: 'short', reduced: false, startFinished: false }),
     );
     act(() => result.current.start());
     unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('다시 보기: 완료 상태에서 다시 시작', () => {
+  it('바로 입장: 2초 안에 갤러리, 처음 화면으로(reset) 하면 게이트', () => {
+    const onCancel = vi.fn();
     const { result } = renderHook(() =>
-      useIntroTimeline({ length: 'short', reduced: false, startFinished: true }),
+      useIntroTimeline({ mode: 'instant', length: 'standard', reduced: false, startFinished: false, onCancel }),
+    );
+    expect(result.current.state.status).toBe('idle');
+    act(() => result.current.start());
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+    expect(result.current.state.curtainsOpen).toBe(true); // 클릭 직후(0ms) 커튼 열림
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(result.current.state.status).toBe('done');
+    expect(result.current.state.galleryIn).toBe(true);
+    onCancel.mockClear();
+    act(() => result.current.reset());
+    expect(result.current.state.status).toBe('idle');
+    expect(result.current.state.curtainsOpen).toBe(false);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('다시 시작: 완료 상태에서 다시 시작', () => {
+    const { result } = renderHook(() =>
+      useIntroTimeline({ mode: 'cinematic', length: 'short', reduced: false, startFinished: true }),
     );
     expect(result.current.state.status).toBe('done');
     act(() => result.current.start());

@@ -1,4 +1,7 @@
-import { DOT_COUNT, INTRO_TIMING, REDUCED_TIMING, SPOT_LEVEL, type IntroTiming } from '@/components/intro/introConfig';
+import { DOT_COUNT, INSTANT_TIMING, INTRO_TIMING, REDUCED_TIMING, SPOT_LEVEL, type IntroTiming } from '@/components/intro/introConfig';
+import type { IntroMode } from '@/lib/data/types';
+
+export type FinaleVariant = 'cinematic' | 'instant' | 'reduced';
 
 export type IntroCue =
   | { at: number; type: 'drumroll'; durationMs: number }
@@ -6,7 +9,7 @@ export type IntroCue =
   | { at: number; type: 'headline' }
   | { at: number; type: 'dot'; index: number }
   | { at: number; type: 'flash'; intensity: number; index: number }
-  | { at: number; type: 'finale'; reduced: boolean }
+  | { at: number; type: 'finale'; variant: FinaleVariant }
   | { at: number; type: 'gallery' }
   | { at: number; type: 'done' };
 
@@ -44,13 +47,27 @@ export const FINISHED_INTRO: IntroState = {
   galleryIn: true,
 };
 
+export interface CueOptions {
+  mode: IntroMode;
+  length: 'standard' | 'short';
+  reduced: boolean;
+  timing?: IntroTiming;
+}
+
 /** 설정값으로 큐 목록 생성 (시간순 정렬) */
-export function buildCues(length: 'standard' | 'short', reduced: boolean, timing: IntroTiming = INTRO_TIMING[length]): IntroCue[] {
+export function buildCues({ mode, length, reduced, timing = INTRO_TIMING[length] }: CueOptions): IntroCue[] {
   if (reduced) {
     return [
-      { at: REDUCED_TIMING.finaleAt, type: 'finale', reduced: true },
+      { at: REDUCED_TIMING.finaleAt, type: 'finale', variant: 'reduced' },
       { at: REDUCED_TIMING.galleryAt, type: 'gallery' },
       { at: REDUCED_TIMING.doneAt, type: 'done' },
+    ];
+  }
+  if (mode === 'instant') {
+    return [
+      { at: INSTANT_TIMING.finaleAt, type: 'finale', variant: 'instant' },
+      { at: INSTANT_TIMING.galleryAt, type: 'gallery' },
+      { at: INSTANT_TIMING.doneAt, type: 'done' },
     ];
   }
   const t = timing;
@@ -62,7 +79,7 @@ export function buildCues(length: 'standard' | 'short', reduced: boolean, timing
     ...Array.from({ length: DOT_COUNT }, (_, i): IntroCue => ({ at: t.dotsAt + i * t.dotInterval, type: 'dot', index: i })),
     ...t.flashes.map((f, i): IntroCue => ({ at: f.at, type: 'flash', intensity: f.intensity, index: i })),
     { at: t.flashes[0]?.at ?? t.finaleAt, type: 'spot', level: SPOT_LEVEL.peak },
-    { at: t.finaleAt, type: 'finale', reduced: false },
+    { at: t.finaleAt, type: 'finale', variant: 'cinematic' },
     { at: t.galleryAt, type: 'gallery' },
     { at: t.doneAt, type: 'done' },
   ];
@@ -94,16 +111,16 @@ export function introReducer(s: IntroState, a: IntroAction): IntroState {
         case 'flash':
           return { ...s, flash: { key: s.flash.key + 1, intensity: c.intensity, full: false } };
         case 'finale':
-          return c.reduced
-            ? { ...s, curtainsOpen: true, spotlight: 0 }
-            : {
-                ...s,
-                headline: false,
-                curtainsOpen: true,
-                spotlight: 0,
-                flash: { key: s.flash.key + 1, intensity: 1, full: true },
-                confettiKey: s.confettiKey + 1,
-              };
+          if (c.variant === 'reduced') return { ...s, curtainsOpen: true, spotlight: 0 };
+          if (c.variant === 'instant') return { ...s, curtainsOpen: true, spotlight: 0, confettiKey: s.confettiKey + 1 };
+          return {
+            ...s,
+            headline: false,
+            curtainsOpen: true,
+            spotlight: 0,
+            flash: { key: s.flash.key + 1, intensity: 1, full: true },
+            confettiKey: s.confettiKey + 1,
+          };
         case 'gallery':
           return { ...s, galleryIn: true };
         case 'done':

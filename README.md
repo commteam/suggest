@@ -6,7 +6,13 @@
 > 3. 배포된 주소의 `/admin`에서 로그인한 뒤 **연출 설정 → 접속 코드**를 정하면 공개 사이트가 열립니다.
 
 영화제 시상식처럼 연출한 사내 제안제도 우수자 발표 사이트입니다.
-닫힌 블루 벨벳 커튼이 열리는 오프닝, 금색 액자가 걸린 명예의 전당, 사람별 상세 화면(AS-IS → 추진 내용 → TO-BE → 진행 소감)으로 구성됩니다. 관리자 페이지에서 사진과 내용을 직접 고칠 수 있습니다.
+닫힌 블루 벨벳 커튼 앞의 입장 화면, 금색 액자가 걸린 명예의 전당, 사람별 상세 화면(AS-IS → 추진 내용 → TO-BE → 진행 소감)으로 구성됩니다. 관리자 페이지에서 사진과 내용을 직접 고칠 수 있습니다.
+
+- **입장 연출**: 기본은 **바로 입장**입니다. "입장하기"를 누르면 커튼이 약 1.5초 동안 열리고 금색 색종이가 한 번 터지며 액자 5개가 차례로 떠오릅니다. 관리자 연출 설정에서 **시네마틱 오프닝**(드럼롤 → 문구 → 골드 점 → 플래시 3회 → 팡파르)으로 바꿀 수 있습니다.
+- **배경음악**: "입장하기"를 누른 순간부터 웅장한 시상식풍 음악이 갤러리와 상세 화면에서 끊기지 않고 반복 재생됩니다.
+  - 기본 음악은 외부 음원 없이 Web Audio로 직접 합성합니다(약 53초, 도입 → 고조 → 클라이맥스 → 여운). 관리자가 올린 mp3가 있으면 그것을 우선합니다.
+  - 상세 화면에서는 40%로 줄어들고, 사진 공개 순간의 팡파르·셔터는 음악 위에 짧게 얹힙니다.
+  - 우측 상단 토글이 음악과 효과음을 함께 켜고 끄며, 상태는 기억됩니다. 탭이 백그라운드로 가면 멈췄다가 돌아오면 이어서 재생합니다.
 
 - React + Vite + TypeScript + Tailwind v4 + shadcn/ui(Radix) + React Router
 - Framer Motion, HTML Canvas(스포트라이트, 색종이), Web Audio API(효과음 합성)
@@ -34,8 +40,10 @@
   5. `supabase/migrations/20260101000005_presentation.sql`
   6. `supabase/migrations/20260101000006_storage.sql`
   7. `supabase/migrations/20260101000007_restore_awards.sql`
-  8. (선택) `supabase/seed.sql`: 가상 인물 5명 예시 데이터
-  - Supabase CLI를 쓴다면 `supabase link --project-ref <ref>` 다음 `supabase db push` 한 번으로 1~7이 실행됩니다.
+  8. `supabase/migrations/20260101000008_intro_mode_music.sql`: 입장 연출·배경음악 설정
+  9. (선택) `supabase/seed.sql`: 가상 인물 5명 예시 데이터
+  - Supabase CLI를 쓴다면 `supabase link --project-ref <ref>` 다음 `supabase db push` 한 번으로 1~8이 실행됩니다.
+  - 이미 1~7을 실행한 프로젝트라면 **8번만 추가로 실행**하면 됩니다.
   - 모든 파일은 다시 실행해도 안전합니다(멱등).
 - [ ] **3. 관리자 계정 만들기**
       Authentication → Users → **Add user** → 이메일과 비밀번호 입력, *Auto Confirm User* 체크
@@ -55,8 +63,14 @@
       - ⚠️ `service_role` 키는 절대 넣지 마세요. 브라우저에는 anon 키만 씁니다.
 - [ ] **6. 배포** (아래 「배포」 참고) → 배포 주소의 `/admin` 접속
 - [ ] **7. 접속 코드 설정**: `/admin` → 연출 설정 → 접속 코드 (위 🔑 참고)
-- [ ] **8. 내용 입력**: 우수자 관리에서 사진과 내용을 입력하고 공개 여부를 정합니다. 연출 설정에서 행사 제목, 오프닝 문구, 포인트 컬러, (선택) 팡파르·배경음 mp3를 정합니다.
-- [ ] **9. 리허설**: 발표 모드에서 **전체 비공개**를 한 다음, 다른 기기에서 공개 사이트를 열어 둡니다. **다음 사람 공개**를 누르면 그 기기에서 스포트라이트 → 플래시 → 사진 → 팡파르 순서로 연출되는지 확인합니다.
+- [ ] **8. 내용 입력**: 우수자 관리에서 사진과 내용을 입력하고 공개 여부를 정합니다. 연출 설정에서 다음을 정합니다.
+  - 행사 제목, 포인트 컬러
+  - 입장 연출(바로 입장 / 시네마틱 오프닝)
+  - 배경음악(기본 웅장한 음악 / 업로드한 음악), 음량, 미리듣기
+  - (선택) 팡파르 효과음 mp3
+  - ⚠️ 업로드하는 음원은 **사용 허가(라이선스)를 받은 곡만** 쓰세요. 기본 음악은 사이트가 직접 합성하므로 저작권 걱정이 없습니다.
+- [ ] **9. 소리 확인**: 배포 주소에서 PC와 휴대폰(특히 iPhone Safari)으로 "입장하기"를 누르고 음악이 2초에 걸쳐 커지는지, 상세 화면에서 줄어드는지, 탭을 바꿨다 돌아오면 이어지는지 들어 봅니다.
+- [ ] **10. 리허설**: 발표 모드에서 **전체 비공개**를 한 다음, 다른 기기에서 공개 사이트를 열어 둡니다. **다음 사람 공개**를 누르면 그 기기에서 스포트라이트 → 플래시 → 사진 → 팡파르 순서로 연출되는지 확인합니다.
 
 ---
 
@@ -78,7 +92,7 @@ http://localhost:5173 에서 공개 화면을, http://localhost:5173/admin 에�
 | `npm run build` | 타입 검사 + 프로덕션 빌드(`dist/`) |
 | `npm run lint` | ESLint |
 | `npm test` | Vitest 단위 테스트(오프닝 타임라인, 텍스트 파서, 복원 검증, 공개 전 마스킹 등) |
-| `npm run e2e` | 데모 모드 전체 흐름 Playwright 검사(먼저 `npx vite preview --port 4173` 실행) |
+| `npm run e2e` | 데모 모드 전체 흐름 Playwright 검사(먼저 `npx vite preview --port 4173` 실행). 입장 → 갤러리 → 상세 → 관리자 수정 → 반영 → 발표 공개 → 처음 화면으로 → 시네마틱 건너뛰기 → 음악 재생·덕킹·토글·탭 숨김을 확인합니다 |
 | `npm run test:db` | 로컬 PostgreSQL에서 마이그레이션·RLS 보안 테스트(`PGUSER=postgres`) |
 
 ### 데모 모드 vs Supabase 모드
@@ -135,7 +149,7 @@ SPA 라우팅(`/admin` 새로고침)은 `vercel.json`과 `netlify.toml`의 rewri
 ```
 src/
   components/
-    intro/        Intro, Curtains, SpotlightCanvas, Confetti, GoldDots, IntroControls, introConfig.ts(타이밍 상수)
+    intro/        Intro, Curtains, SpotlightCanvas, Confetti, GoldDots, IntroControls, introConfig.ts(타이밍 상수: 바로 입장·시네마틱)
     gallery/      Gallery, Frame, Nameplate, Silhouette, WallBackdrop
     detail/       DetailOverlay, WinnerDetail, StoryBlock, StoryText, DevelopingPhoto, Pager
     gate/         AccessGate
@@ -145,7 +159,7 @@ src/
   lib/
     data/         DataProvider, MockProvider, SupabaseProvider, mask, backup, seedData
     intro/        timeline.ts (오프닝 상태 기계 + 스케줄러)
-    audio/        SoundEngine (Web Audio 합성)
+    audio/        SoundEngine(효과음·공통 체인), music/(score 악보·시퀀서, instruments 합성 악기, MusicPlayer, volume 덕킹 규칙)
     text/         parseStory (줄바꿈·불릿 파서)
   pages/          PublicPage, admin/*
 supabase/
@@ -157,8 +171,10 @@ scripts/          e2e.mjs, e2e-supabase.mjs, screenshots.mjs, test-db.sh
 
 ## 사용 팁
 
-- 오프닝 타이밍은 `src/components/intro/introConfig.ts` 한 파일에서 바꿉니다.
+- 입장·오프닝 타이밍은 `src/components/intro/introConfig.ts` 한 파일에서 바꿉니다.
+- 기본 배경음악의 화음 진행·세기·템포는 `src/lib/audio/music/score.ts`, 음량·덕킹 비율은 `volume.ts`에서 바꿉니다.
 - 색은 `src/styles/tokens.css`의 CSS 변수로 관리합니다. 포인트 컬러(`--c-accent`)는 관리자 설정에서 바꿀 수 있고, 실버 프리셋은 `#cfd8e6`입니다.
 - 제안 내용에서 줄바꿈은 그대로 보이고, `- `로 시작하는 줄은 글머리표로 바뀝니다. HTML은 해석하지 않습니다.
 - 관람자가 한 번 열어 본 액자는 그 브라우저에서 계속 공개 상태로 보입니다(localStorage).
-- 효과음은 사용자가 클릭한 뒤에만 재생됩니다. 관리자가 팡파르 mp3를 올리면 합성음 대신 그 파일을 씁니다.
+- 음악과 효과음은 사용자가 "입장하기"를 누른 뒤에만 재생됩니다(자동재생 차단 회피). 모바일 Safari를 위해 업로드한 음악은 클릭 순간에 미리 재생을 걸어 두고, 무음 스위치와 관계없이 들리도록 오디오 세션을 playback으로 설정합니다.
+- "처음 화면으로"를 누르면 게이트로 돌아가고, 배경음악은 끊기지 않습니다.

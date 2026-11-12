@@ -15,8 +15,8 @@ const velvet = {
 const shade =
   'linear-gradient(to bottom, rgba(2,6,18,0.55) 0%, transparent 18%, transparent 72%, rgba(2,6,18,0.65) 100%)';
 
-function Panel({ side, open, reduced }: { side: 'left' | 'right'; open: boolean; reduced: boolean }) {
-  const dur = (reduced ? CURTAIN_OPEN_MS.reduced : CURTAIN_OPEN_MS.normal) / 1000;
+function Panel({ side, open, reduced, durationMs }: { side: 'left' | 'right'; open: boolean; reduced: boolean; durationMs: number }) {
+  const dur = durationMs / 1000;
   return (
     <motion.div
       className="absolute top-0 bottom-0 w-1/2 overflow-hidden"
@@ -45,16 +45,27 @@ function Panel({ side, open, reduced }: { side: 'left' | 'right'; open: boolean;
 }
 
 /** 로열 블루 벨벳 커튼 + 상단 발란스(골드 라인) */
-export function Curtains({ open, reduced, liftValance }: { open: boolean; reduced: boolean; liftValance: boolean }) {
+export function Curtains({
+  open,
+  reduced,
+  liftValance,
+  mode = 'cinematic',
+}: {
+  open: boolean;
+  reduced: boolean;
+  liftValance: boolean;
+  mode?: 'cinematic' | 'instant';
+}) {
+  const durationMs = reduced ? CURTAIN_OPEN_MS.reduced : CURTAIN_OPEN_MS[mode];
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 z-10 [--fold:44px] sm:[--fold:72px]">
-      <Panel side="left" open={open} reduced={reduced} />
-      <Panel side="right" open={open} reduced={reduced} />
+      <Panel side="left" open={open} reduced={reduced} durationMs={durationMs} />
+      <Panel side="right" open={open} reduced={reduced} durationMs={durationMs} />
       <motion.div
         className="absolute inset-x-0 top-0 h-[clamp(52px,9vh,100px)]"
         initial={false}
         animate={{ y: liftValance ? '-110%' : '0%' }}
-        transition={{ duration: reduced ? 0.4 : 1.2, ease: 'easeInOut' }}
+        transition={{ duration: reduced ? 0.4 : mode === 'instant' ? 0.9 : 1.2, ease: 'easeInOut' }}
       >
         <div
           className="absolute inset-0"

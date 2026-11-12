@@ -20,6 +20,9 @@ const settings = () => ({
   intro_line: '2026 제안제도 우수 수행자를 소개합니다',
   intro_enabled: true,
   intro_length: 'short',
+  intro_mode: 'instant',
+  music_source: 'default',
+  music_volume: 0.5,
   sound_default: false,
   accent_color: '#d9b45a',
   fanfare_url: null,
@@ -87,7 +90,7 @@ try {
   // 3) 맞는 코드 → 오프닝 → 갤러리
   await input.fill('award2026');
   await page.getByRole('button', { name: '입장하기' }).click();
-  await page.getByRole('button', { name: '오프닝 다시 보기' }).waitFor({ timeout: 12000 });
+  await page.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 4000 });
   const awardCalls = server.calls.filter((c) => c.fn === 'get_public_awards');
   assert(awardCalls.length > 0 && awardCalls.every((c) => c.body.code === 'award2026'), '맞는 코드로만 우수자 요청');
   await page.locator('[data-frame-id] button').first().click();
@@ -95,10 +98,12 @@ try {
   await page.keyboard.press('Escape');
   await page.screenshot({ path: 'docs/screenshots/sb-gallery.png' });
 
-  // 4) 새로고침 → 저장된 코드로 바로 갤러리
+  // 4) 새로고침 → 저장된 코드가 있어 입장하기만 누르면 됨
   await page.reload();
-  await page.getByRole('heading', { name: '명예의 전당' }).waitFor();
+  await page.getByRole('button', { name: '입장하기' }).waitFor();
   assert(!(await page.getByLabel('접속 코드').isVisible()), '새로고침 후 코드 재입력 불필요');
+  await page.getByRole('button', { name: '입장하기' }).click();
+  await page.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 4000 });
 
   // 5) 관리자가 코드 변경 → 기존 코드 거부 → 게이트로 복귀
   server.code = 'changed-2026';
@@ -107,8 +112,7 @@ try {
   await page.screenshot({ path: 'docs/screenshots/sb-code-changed.png' });
   await page.getByLabel('접속 코드').fill('changed-2026');
   await page.getByRole('button', { name: '입장하기' }).click();
-  await page.getByRole('button', { name: '건너뛰기' }).click();
-  await page.getByRole('heading', { name: '명예의 전당' }).waitFor();
+  await page.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 4000 });
 
   // 6) 관리자 로그인 화면 (이메일 필드 존재)
   await page.goto(BASE + '/admin');

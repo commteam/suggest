@@ -15,7 +15,7 @@ import {
 const PHOTO_BUCKET = 'winner-photos';
 const AUDIO_BUCKET = 'site-audio';
 const SETTINGS_COLS =
-  'event_title,event_subtitle,year,intro_line,intro_enabled,intro_length,sound_default,accent_color,fanfare_url,bgm_url';
+  'event_title,event_subtitle,year,intro_line,intro_enabled,intro_length,intro_mode,sound_default,accent_color,fanfare_url,bgm_url,music_source,music_volume';
 
 interface ErrLike {
   message?: string;
@@ -80,7 +80,7 @@ export class SupabaseProvider implements DataProvider {
       const s = await this.rpc<(SiteSettings & { access_code_set: boolean }) | null>('get_public_settings');
       if (!s) throw new Error('사이트 설정이 없습니다. 마이그레이션을 실행했는지 확인해 주세요.');
       const { access_code_set, ...rest } = s;
-      return { ...rest, gate: access_code_set ? 'code' : 'not_ready' };
+      return { ...rest, music_volume: Number(rest.music_volume ?? 0.5), gate: access_code_set ? 'code' : 'not_ready' };
     } catch (e) {
       throw translateError(e);
     }
@@ -230,7 +230,8 @@ export class SupabaseProvider implements DataProvider {
       }),
     ]);
     if (error) throw translateError(error);
-    return { ...(data as unknown as SiteSettings), access_code_set: !!pub?.access_code_set };
+    const s = data as unknown as SiteSettings;
+    return { ...s, music_volume: Number(s.music_volume), access_code_set: !!pub?.access_code_set };
   }
 
   async updateSettings(patch: Partial<SiteSettings>) {

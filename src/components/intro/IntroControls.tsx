@@ -1,4 +1,4 @@
-import { FastForward, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { FastForward, Undo2, Volume2, VolumeX } from 'lucide-react';
 import { useSoundPref } from '@/lib/audio/soundPref';
 
 export function SoundToggle() {
@@ -8,8 +8,8 @@ export function SoundToggle() {
       type="button"
       onClick={toggle}
       aria-pressed={enabled}
-      aria-label={enabled ? '효과음 끄기' : '효과음 켜기'}
-      title={enabled ? '효과음 끄기' : '효과음 켜기'}
+      aria-label={enabled ? '음악·효과음 끄기' : '음악·효과음 켜기'}
+      title={enabled ? '음악·효과음 끄기' : '음악·효과음 켜기'}
       className="btn-ghost fixed top-3 right-3 z-[95] !h-10 !w-10 !justify-center !p-0 sm:top-4 sm:right-4"
     >
       {enabled ? <Volume2 className="h-4 w-4" aria-hidden /> : <VolumeX className="h-4 w-4" aria-hidden />}
@@ -26,11 +26,11 @@ export function SkipButton({ onSkip }: { onSkip: () => void }) {
   );
 }
 
-export function ReplayButton({ onReplay }: { onReplay: () => void }) {
+export function BackToGateButton({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" onClick={onReplay} className="btn-ghost text-sm">
-      <RotateCcw className="h-4 w-4" aria-hidden />
-      오프닝 다시 보기
+    <button type="button" onClick={onClick} className="btn-ghost text-sm">
+      <Undo2 className="h-4 w-4" aria-hidden />
+      처음 화면으로
     </button>
   );
 }

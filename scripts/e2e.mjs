@@ -95,22 +95,56 @@ async function makePortrait(browser) {
   return file;
 }
 
+function makeWav() {
+  // 1초짜리 조용한 사인파 WAV (테스트용, 외부 음원 아님)
+  const rate = 8000;
+  const n = rate;
+  const buf = Buffer.alloc(44 + n * 2);
+  buf.write('RIFF', 0);
+  buf.writeUInt32LE(36 + n * 2, 4);
+  buf.write('WAVEfmt ', 8);
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20);
+  buf.writeUInt16LE(1, 22);
+  buf.writeUInt32LE(rate, 24);
+  buf.writeUInt32LE(rate * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write('data', 36);
+  buf.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) buf.writeInt16LE(Math.round(Math.sin((i / rate) * 2 * Math.PI * 220) * 800), 44 + i * 2);
+  const file = 'docs/screenshots/test-tone.wav';
+  fs.writeFileSync(file, buf);
+  return file;
+}
+const wavFile = makeWav();
+
 async function run(browser, key, opts, portrait) {
   step = 0;
   const ctx = await browser.newContext({ ...opts, deviceScaleFactor: 1 });
   const pub = await ctx.newPage();
   watch(pub, `${key}/public`);
 
-  // 1. 입장 → 오프닝
+  const audio = (p) => p.evaluate(() => window.__awardsAudio);
+
+  // 1. 게이트 → 입장하기 → 바로 갤러리 (긴 오프닝 없음)
   await pub.goto(BASE + '/');
   await pub.getByRole('button', { name: '입장하기' }).waitFor();
+  await pub.waitForTimeout(900);
   await snap(pub, key, 'gate');
+  assert(!(await audio(pub)).musicPlaying, '클릭 전에는 음악 재생 안 함');
+  const t0 = Date.now();
   await pub.getByRole('button', { name: '입장하기' }).click();
-  await pub.getByText('2026 제안제도 우수 수행자를 소개합니다').waitFor({ timeout: 4000 });
-  await pub.waitForTimeout(4500);
-  await snap(pub, key, 'intro-dots');
-  // 2. 갤러리
-  await pub.getByRole('button', { name: '오프닝 다시 보기' }).waitFor({ timeout: 15000 });
+  await pub.waitForTimeout(500);
+  await snap(pub, key, 'curtain-opening');
+  assert(!(await pub.getByText('2026 제안제도 우수 수행자를 소개합니다').isVisible()), '바로 입장: 오프닝 문구 없음');
+  // 2. 갤러리 (2.5초 안에)
+  await pub.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 2500 });
+  const elapsed = Date.now() - t0;
+  assert(elapsed < 2600, `입장 후 갤러리까지 ${elapsed}ms`);
+  let a = await audio(pub);
+  assert(a.musicPlaying && a.musicSource === 'synth', `입장 클릭 후 기본 음악 재생 (${JSON.stringify(a)})`);
+  assert(a.contextState === 'running', `AudioContext 실행 중 (${a.contextState})`);
   await pub.waitForTimeout(1500);
   await snap(pub, key, 'gallery');
 
@@ -118,6 +152,7 @@ async function run(browser, key, opts, portrait) {
   await pub.locator('[data-frame-id] button').first().click();
   const dlg = pub.getByRole('dialog');
   await dlg.waitFor();
+  assert((await audio(pub)).ducked, '상세 화면에서 음악 덕킹');
   for (const t of ['AS-IS', 'ACTION', 'TO-BE', 'REFLECTION', '제안 주제', '도장 라인 지그 교체 시간 단축'])
     assert(await dlg.getByText(t, { exact: false }).first().isVisible(), `상세에 "${t}" 표시`);
   await pub.waitForTimeout(2300);
@@ -135,6 +170,8 @@ async function run(browser, key, opts, portrait) {
   await snap(pub, key, 'detail-next-bottom');
   await pub.keyboard.press('Escape');
   await dlg.waitFor({ state: 'detached' });
+  a = await audio(pub);
+  assert(!a.ducked && a.musicPlaying, '상세를 닫으면 덕킹 해제, 음악은 계속');
   // 공개 전 액자
   await pub.locator('[data-frame-id] button').nth(3).click();
   await pub.getByText('발표 전입니다').waitFor();
@@ -202,32 +239,93 @@ async function run(browser, key, opts, portrait) {
   await snap(pub, key, 'reveal-done');
   await pub.locator('[data-frame-id]').nth(3).getByText('최민준').waitFor({ timeout: 5000 });
 
-  // 9. 오프닝 건너뛰기 → 다시 보기
+  // 9. 처음 화면으로 → 게이트, 음악은 계속
+  await pub.getByRole('button', { name: '처음 화면으로' }).click();
+  await pub.getByRole('button', { name: '입장하기' }).waitFor();
+  assert((await audio(pub)).musicPlaying, '처음 화면으로 돌아가도 음악 유지');
+  await pub.getByRole('button', { name: '입장하기' }).click();
+  await pub.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 2500 });
+
+  // 10. 관리자: 입장 연출을 시네마틱으로 → 건너뛰기 동작
+  await adm.bringToFront();
+  await adm.goto(`${BASE}/admin/settings`);
+  await adm.getByRole('radio', { name: /시네마틱 오프닝/ }).click();
+  await adm.getByRole('button', { name: '설정 저장', exact: true }).click();
+  await adm.getByText('연출 설정을 저장했습니다').waitFor();
   const fresh = await ctx.newPage();
   watch(fresh, `${key}/fresh`);
-  await fresh.evaluate(() => sessionStorage.clear()).catch(() => {});
   await fresh.goto(BASE + '/');
-  await fresh.evaluate(() => sessionStorage.clear());
-  await fresh.reload();
   await fresh.getByRole('button', { name: '입장하기' }).click();
-  await fresh.waitForTimeout(2500);
+  await fresh.getByText('2026 제안제도 우수 수행자를 소개합니다').waitFor({ timeout: 4000 });
+  assert((await audio(fresh)).introDucked, '시네마틱 오프닝 중 음악은 덕킹');
+  await fresh.waitForTimeout(1500);
+  await snap(fresh, key, 'cinematic-headline');
   await fresh.getByRole('button', { name: '건너뛰기' }).click();
-  await fresh.getByRole('button', { name: '오프닝 다시 보기' }).waitFor({ timeout: 3000 });
-  assert(!(await fresh.getByRole('button', { name: '건너뛰기' }).isVisible()), '건너뛰기 후 버튼 사라짐');
-  await fresh.waitForTimeout(12000); // 건너뛴 뒤 남은 타이머가 연출을 다시 띄우지 않는지
+  await fresh.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 3000 });
+  a = await audio(fresh);
+  assert(a.musicPlaying && !a.introDucked, '건너뛰기 후 음악은 계속, 덕킹 해제');
+  await fresh.waitForTimeout(9000); // 건너뛴 뒤 남은 타이머가 연출을 다시 띄우지 않는지
   assert(!(await fresh.getByText('2026 제안제도 우수 수행자를 소개합니다').isVisible()), '건너뛴 뒤 오프닝 문구가 다시 나타나지 않음');
   await snap(fresh, key, 'after-skip');
-  await fresh.getByRole('button', { name: '오프닝 다시 보기' }).click();
-  await fresh.getByText('2026 제안제도 우수 수행자를 소개합니다').waitFor({ timeout: 4000 });
-  await fresh.getByRole('button', { name: '오프닝 다시 보기' }).waitFor({ timeout: 16000 });
-  await fresh.waitForTimeout(1200);
-  await snap(fresh, key, 'replay-done');
+  // 관리자: 배경음악 미리듣기 → 업로드 → 업로드 음악으로 재생
+  await adm.bringToFront();
+  await adm.getByRole('button', { name: '미리듣기' }).click();
+  await adm.waitForTimeout(400);
+  let aa = await audio(adm);
+  assert(aa.musicPlaying && aa.musicSource === 'synth', `관리자 미리듣기: 기본 음악 (${JSON.stringify(aa)})`);
+  await adm.getByLabel('배경음악 음량').fill('0.3');
+  assert(Math.abs((await audio(adm)).volume - 0.3) < 0.01, '음량 슬라이더 즉시 반영');
+  await adm.getByRole('button', { name: '미리듣기 정지' }).click();
+  await adm.getByLabel('배경음악 파일 선택').setInputFiles(wavFile);
+  await adm.getByText('배경음악을 등록했습니다').waitFor();
+  assert((await adm.getByRole('radio', { name: /업로드한 음악/ }).getAttribute('aria-checked')) === 'true', '업로드 후 업로드 음악 선택');
+  await adm.getByRole('button', { name: '미리듣기' }).click();
+  await adm.waitForTimeout(600);
+  aa = await audio(adm);
+  assert(aa.musicPlaying && aa.musicSource === 'url', `업로드 음악 미리듣기 (${JSON.stringify(aa)})`);
+  await adm.getByRole('button', { name: '미리듣기 정지' }).click();
+  await snap(adm, key, 'admin-music');
+  // 공개 화면: 업로드 음악으로 바뀜
+  await fresh.bringToFront();
+  await fresh.waitForTimeout(800);
+  aa = await audio(fresh);
+  assert(aa.musicPlaying && aa.musicSource === 'url', `공개 화면도 업로드 음악으로 교체 (${JSON.stringify(aa)})`);
+  // 기본 음악으로 되돌림
+  await adm.bringToFront();
+  await adm.getByRole('button', { name: '업로드한 음악 삭제' }).click();
+  await adm.getByText('기본 음악을 사용합니다').waitFor();
 
-  // 효과음 토글
-  const toggle = fresh.getByRole('button', { name: /효과음 (끄기|켜기)/ });
-  const before = await toggle.getAttribute('aria-pressed');
+  // 원래대로(바로 입장)
+  await adm.bringToFront();
+  await adm.getByRole('radio', { name: /바로 입장/ }).click();
+  await adm.getByRole('button', { name: '설정 저장', exact: true }).click();
+  await adm.getByText('연출 설정을 저장했습니다').first().waitFor();
+
+  // 11. 소리 토글: 음악·효과음 함께 끄고, 상태 기억
+  const toggle = fresh.getByRole('button', { name: /음악·효과음 (끄기|켜기)/ });
+  assert((await toggle.getAttribute('aria-pressed')) === 'true', '기본은 소리 켜짐');
   await toggle.click();
-  assert((await toggle.getAttribute('aria-pressed')) !== before, '효과음 토글');
+  assert((await toggle.getAttribute('aria-pressed')) === 'false', '토글 끔');
+  assert(!(await audio(fresh)).enabled, '엔진도 꺼짐');
+  assert((await fresh.evaluate(() => localStorage.getItem('awards.sound'))) === '0', '토글 상태 저장');
+  await fresh.reload();
+  assert((await fresh.getByRole('button', { name: /음악·효과음 켜기/ }).getAttribute('aria-pressed')) === 'false', '새로고침 후에도 꺼짐 유지');
+  await fresh.getByRole('button', { name: /음악·효과음 켜기/ }).click();
+
+  // 12. 탭 숨김 → 음악 일시정지, 복귀 → 재개
+  await fresh.getByRole('button', { name: '입장하기' }).click();
+  await fresh.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 3000 });
+  const hidden = await fresh.evaluate(async () => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise((r) => setTimeout(r, 300));
+    const s1 = window.__awardsAudio.contextState;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise((r) => setTimeout(r, 300));
+    return [s1, window.__awardsAudio.contextState];
+  });
+  assert(hidden[0] === 'suspended' && hidden[1] === 'running', `탭 숨김 시 정지·복귀 시 재개 (${hidden})`);
 
   // 관리자 다른 화면 레이아웃 점검
   await adm.bringToFront();

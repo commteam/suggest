@@ -7,6 +7,7 @@ import { SpotlightCanvas } from './SpotlightCanvas';
 
 interface Props {
   state: IntroState;
+  mode: 'cinematic' | 'instant';
   reduced: boolean;
   introLine: string;
   /** 대기 화면(입장하기/접속 코드/준비 중) */
@@ -17,13 +18,13 @@ interface Props {
  * 오프닝 무대: 커튼, 어둠, 스포트라이트, 문구, 골드 점.
  * 플래시와 색종이는 페이지 레벨에서 그립니다(갤러리 위에도 보여야 하므로).
  */
-export function Intro({ state, reduced, introLine, gate }: Props) {
+export function Intro({ state, mode, reduced, introLine, gate }: Props) {
   const idle = state.status === 'idle';
   const darkness = idle ? 0.25 : state.curtainsOpen ? 0 : 0.78 - state.spotlight * 0.38;
 
   return (
     <div className={`fixed inset-0 z-40 ${state.curtainsOpen ? 'pointer-events-none' : ''}`}>
-      <Curtains open={state.curtainsOpen} reduced={reduced} liftValance={state.galleryIn} />
+      <Curtains open={state.curtainsOpen} reduced={reduced} liftValance={state.galleryIn} mode={mode} />
       <motion.div
         aria-hidden
         className="pointer-events-none absolute inset-0 z-20 bg-[#02050d]"

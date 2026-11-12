@@ -168,3 +168,34 @@ do $$ begin
 end $$;
 
 select 'ALL SECURITY TESTS PASSED' as result;
+
+-- ---------- 8) 입장 연출 / 배경음악 설정 ----------
+set role anon;
+do $$ declare j jsonb := public.get_public_settings(); begin
+  if j ->> 'intro_mode' <> 'instant' then raise exception 'intro_mode default should be instant, got %', j ->> 'intro_mode'; end if;
+  if j ->> 'music_source' <> 'default' then raise exception 'music_source default wrong'; end if;
+  if (j ->> 'music_volume')::numeric <> 0.5 then raise exception 'music_volume default wrong'; end if;
+  if jsonb_typeof(j -> 'music_volume') <> 'number' then raise exception 'music_volume should be number'; end if;
+  if j ? 'access_code_hash' then raise exception 'hash leaked'; end if;
+end $$;
+select pg_temp.expect_error('update public.site_settings set intro_mode = ''cinematic''', 'permission denied');
+reset role;
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
+update public.site_settings set intro_mode = 'cinematic', music_source = 'upload', music_volume = 0.35 where id = 1;
+select pg_temp.expect_error('update public.site_settings set intro_mode = ''slow''', 'check');
+select pg_temp.expect_error('update public.site_settings set music_volume = 1.5', 'check');
+select pg_temp.expect_error($q$select public.restore_awards('{"winners":[],"settings":{"event_title":"t","event_subtitle":"s","intro_line":"l","accent_color":"#ffffff","intro_length":"short","year":2026,"intro_mode":"slow"}}'::jsonb)$q$, 'intro_mode');
+select pg_temp.expect_error($q$select public.restore_awards('{"winners":[],"settings":{"event_title":"t","event_subtitle":"s","intro_line":"l","accent_color":"#ffffff","intro_length":"short","year":2026,"music_volume":3}}'::jsonb)$q$, 'music_volume');
+do $$ begin
+  if (select count(*) from public.winners) <> 2 then raise exception 'data lost after failed restore (8)'; end if;
+end $$;
+-- 이전 버전 백업(새 항목 없음)은 기본값으로 복원
+select public.restore_awards('{"winners":[],"settings":{"event_title":"t","event_subtitle":"s","intro_line":"l","accent_color":"#ffffff","intro_length":"short","year":2026}}'::jsonb);
+do $$ begin
+  if (select intro_mode from public.site_settings) <> 'instant' then raise exception 'old backup should reset intro_mode'; end if;
+  if (select music_volume from public.site_settings) <> 0.5 then raise exception 'old backup should reset volume'; end if;
+end $$;
+reset role;
+select 'MIGRATION 8 TESTS PASSED' as result;
