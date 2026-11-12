@@ -150,7 +150,15 @@ SPA 라우팅(`/admin` 새로고침)은 `vercel.json`과 `netlify.toml`의 rewri
 | 발표 | `https://배포주소/?source=teams` | 공개 화면 그대로(입장하기 → 갤러리, 음악) |
 | 관리 | `https://배포주소/admin?source=teams` | 로그인 화면으로 바로 이동(이미 로그인했으면 관리 화면) |
 
-- **iframe 삽입 허용 범위**: `vercel.json`과 `netlify.toml`의 CSP `frame-ancestors`가 `'self'`와 Teams/Microsoft 365 도메인만 허용합니다. 다른 사이트가 iframe으로 넣으면 브라우저가 막습니다. `X-Frame-Options`는 이 설정과 충돌하므로 제거했습니다.
+- **iframe 삽입 허용 범위**: `vercel.json`과 `netlify.toml`의 CSP `frame-ancestors`가 아래 호스트만 허용합니다. 다른 사이트가 iframe으로 넣으면 브라우저가 막습니다. `X-Frame-Options`는 이 설정과 충돌하므로 제거했습니다.
+  ```
+  'self' https://teams.microsoft.com https://*.teams.microsoft.com https://*.skype.com
+  https://teams.live.com https://*.teams.live.com https://teams.cloud.microsoft https://*.cloud.microsoft
+  https://*.office.com https://*.office365.com https://*.microsoft365.com https://*.microsoft.com
+  https://*.sharepoint.com https://outlook.office.com https://outlook.office365.com
+  ```
+  이 목록은 앱의 Teams 감지 목록(`src/lib/teams/teamsHost.ts`)과 같아야 하며, 단위 테스트가 두 목록이 일치하는지 확인합니다.
+- **Teams SDK가 하는 요청**: 신뢰 도메인 목록 `https://res.cdn.office.net/teams-js/validDomains/json/validDomains.json`을 받아 오는 것 하나뿐이고, `connect-src`에 허용되어 있습니다. SDK는 앱에 번들되어(`script-src 'self'`) 외부 스크립트나 iframe을 만들지 않으므로 `frame-src`는 바꿀 필요가 없습니다.
 - **Teams SDK**: Teams 안에서 열렸을 때만 `@microsoft/teams-js`를 내려받아 `app.initialize()`와 `app.notifySuccess()`를 호출합니다. 일반 브라우저에서는 SDK를 내려받지 않습니다. 초기화가 실패하거나 6초 안에 응답이 없어도 화면은 그대로 동작합니다.
 - **로그인 유지**: Supabase 세션은 iframe 안의 localStorage에 저장됩니다. Chromium 계열(새 Teams, Edge WebView2, Teams 웹)에서는 탭을 다시 열어도 로그인이 유지되는 것을 확인했습니다.
   - 회사 보안 정책이나 일부 브라우저(예: Safari의 서드파티 저장소 차단)에서는 유지되지 않을 수 있습니다.
@@ -158,6 +166,40 @@ SPA 라우팅(`/admin` 새로고침)은 `vercel.json`과 `netlify.toml`의 rewri
   - 저장소가 완전히 막힌 환경에서도 앱이 멈추지 않고 메모리에 로그인하며, "로그인 정보를 저장할 수 없습니다" 경고를 보여 줍니다.
 - **사진 업로드**: 업로드 영역마다 눈에 잘 띄는 **파일 선택** 버튼이 있습니다(드래그앤드롭은 보조). 버튼 위에 실제 파일 입력을 겹쳐 두어서, 사용자의 클릭이 그대로 네이티브 파일 선택창을 엽니다. Teams 웹·데스크톱에서도 동작합니다.
 - **Supabase 커스텀 도메인**을 쓰면 CSP의 `connect-src`, `img-src`, `media-src`에 그 도메인을 추가해야 합니다(기본 `*.supabase.co`만 허용).
+
+### 배포 후 응답 헤더 확인
+
+새 배포가 반영됐는지 터미널에서 바로 확인할 수 있습니다(주소만 바꿔서 사용). Vercel 대시보드에서 배포가 **Ready**가 된 뒤에 실행하세요.
+
+1. 응답 헤더 전체 보기:
+   ```bash
+   curl -sI https://suggest-comm5.vercel.app/
+   ```
+2. Teams 탭 주소(관리 탭)의 CSP만 보기(SPA 경로에도 같은 헤더가 붙는지 확인):
+   ```bash
+   curl -sI "https://suggest-comm5.vercel.app/admin?source=teams" | grep -i content-security-policy
+   ```
+3. frame-ancestors를 한 줄씩 보기(`teams.live.com`, `*.sharepoint.com` 등이 보여야 함):
+   ```bash
+   curl -sI https://suggest-comm5.vercel.app/ | grep -io "frame-ancestors[^;]*" | tr ' ' '\n'
+   ```
+4. X-Frame-Options가 **없어야** 합니다(아무것도 출력되지 않으면 정상):
+   ```bash
+   curl -sI https://suggest-comm5.vercel.app/ | grep -i x-frame-options
+   ```
+5. 캐시된 예전 응답이 아닌지 확인하려면 다음 줄을 봅니다. `age`가 크거나 `x-vercel-cache: HIT`이면 캐시 응답이니, 재배포 후 잠시 뒤에 다시 확인하세요.
+   ```bash
+   curl -sI https://suggest-comm5.vercel.app/ | grep -iE "^(age|x-vercel-cache|x-vercel-id):"
+   ```
+
+### Teams 탭이 흰 화면일 때 점검 순서
+1. 위 명령으로 `frame-ancestors`에 새 호스트가 들어 있고 `X-Frame-Options`가 없는지 확인합니다.
+2. **Vercel Deployment Protection(Vercel Authentication)**이 켜져 있으면, 로그인 페이지가 `X-Frame-Options: DENY`로 응답해서 iframe이 흰 화면이 됩니다.
+   - 위 4번 명령에서 `x-frame-options`가 나오거나 응답이 `401`/`302`이면 이 경우입니다.
+   - Vercel → Project Settings → Deployment Protection에서 프로덕션 도메인이 보호되지 않는지 확인하세요.
+3. Teams 웹(브라우저)에서 탭을 열고 개발자 도구 콘솔에 `Refused to frame ... frame-ancestors` 메시지가 있는지 봅니다. 메시지에 나온 상위 주소(호스트)를 알려 주시면 허용 목록에 추가할 수 있습니다.
+4. Teams 앱 패키지의 `validDomains`와 탭 주소가 실제 배포 주소와 같은지 확인합니다(`teams-app/suggest-awards-teams.zip`).
+5. Teams는 탭을 캐시하므로, 앱을 제거했다가 다시 추가하거나 Teams를 완전히 종료한 뒤 다시 열어 봅니다.
 
 ## 보안 설계
 
