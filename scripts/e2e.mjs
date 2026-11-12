@@ -274,6 +274,13 @@ async function run(browser, key, opts, portrait) {
   assert(!(await pub.getByText('화면을 한 번 누르면 음악이 시작됩니다').isVisible()), '음악이 시작되면 안내 사라짐');
   await pub.waitForTimeout(1500);
   await snap(pub, key, 'gallery');
+  // 갤러리 안내문구: 헤더에 한 줄로
+  const clickHint = pub.getByText('액자를 클릭하면 수상자가 공개됩니다.');
+  assert(await clickHint.isVisible(), '갤러리 안내문구 표시');
+  const hb = await clickHint.boundingBox();
+  assert(hb && hb.height < 28 && hb.x >= 0 && hb.x + hb.width <= pub.viewportSize().width, `안내문구 한 줄·화면 안 (${JSON.stringify(hb)})`);
+  const plate = (p, i) => p.locator('[data-frame-id]').nth(i);
+  assert(await plate(pub, 0).getByText('공개 전').isVisible(), '첫 접속: 공개된 사람도 물음표 상태로 시작');
 
   // 3. 액자 클릭 → 상세(네 파트)
   await pub.locator('[data-frame-id] button').first().click();
@@ -315,6 +322,8 @@ async function run(browser, key, opts, portrait) {
   await adm.getByRole('button', { name: '로그인' }).click();
   await adm.getByRole('heading', { name: /우수자 관리/ }).waitFor();
   await snap(adm, key, 'admin-list');
+  // 관리자 탭을 새로 열어도(새 접속) 발표 탭에서 이미 연 액자는 그대로
+  assert(await plate(pub, 0).getByText('김하늘').isVisible(), '관리자 탭을 열어도 발표 탭의 공개 상태 유지');
 
   // 6. 우수자 수정 + 사진 업로드
   await adm.getByRole('link', { name: '김하늘 수정' }).click();
@@ -372,6 +381,25 @@ async function run(browser, key, opts, portrait) {
   assert((await audio(pub)).musicPlaying, '처음 화면으로 돌아가도 음악 유지');
   await pub.getByRole('button', { name: '입장하기' }).click();
   await pub.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 2500 });
+  assert(await plate(pub, 0).getByText('김하늘').isVisible(), '같은 접속 안에서는 처음 화면에 다녀와도 공개 상태 유지');
+
+  // 9-1. 새로 접속(새로고침): 공개된 사람도 다시 물음표 상태, 클릭해야 열림
+  await pub.reload();
+  await settleAutoplayProbe(pub);
+  await pub.getByRole('button', { name: '입장하기' }).click();
+  await pub.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 2500 });
+  await pub.waitForTimeout(1500);
+  for (const i of [0, 1, 3]) {
+    assert(await plate(pub, i).getByText('공개 전').isVisible(), `새로고침 후 ${i + 1}번 액자 물음표 상태`);
+  }
+  assert(!(await plate(pub, 0).getByText('김하늘').isVisible()), '새로고침 후 이름이 보이지 않음');
+  assert(await pub.getByText('액자를 클릭하면 수상자가 공개됩니다.').isVisible(), '새로고침 후에도 안내문구');
+  await snap(pub, key, 'revisit-gallery');
+  await pub.locator('[data-frame-id] button').first().click();
+  await pub.getByRole('dialog').waitFor();
+  await pub.keyboard.press('Escape');
+  await pub.getByRole('dialog').waitFor({ state: 'detached' });
+  await plate(pub, 0).getByText('김하늘').waitFor();
 
   // 10. 관리자: 입장 연출을 시네마틱으로 → 건너뛰기 동작
   await adm.bringToFront();
@@ -391,6 +419,9 @@ async function run(browser, key, opts, portrait) {
   await snap(fresh, key, 'cinematic-headline');
   await fresh.getByRole('button', { name: '건너뛰기' }).click();
   await fresh.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 3000 });
+  // 새 탭 = 새 접속: 물음표로 시작, 기존 발표 탭은 그대로
+  assert(await plate(fresh, 0).getByText('공개 전').isVisible(), '새 탭은 물음표 상태로 시작');
+  assert(await plate(pub, 0).getByText('김하늘').isVisible(), '새 탭이 열려도 기존 탭의 공개 상태 유지');
   a = await audio(fresh);
   assert(a.musicPlaying && !a.introDucked, '건너뛰기 후 음악은 계속, 덕킹 해제');
   await fresh.waitForTimeout(9000); // 건너뛴 뒤 남은 타이머가 연출을 다시 띄우지 않는지
@@ -455,6 +486,18 @@ async function run(browser, key, opts, portrait) {
     return [s1, window.__awardsAudio.contextState];
   });
   assert(hidden[0] === 'suspended' && hidden[1] === 'running', `탭 숨김 시 정지·복귀 시 재개 (${hidden})`);
+
+  // 13. 모두 공개 전이면 안내문구 숨김 (클릭해도 열 수 있는 액자가 없음)
+  await adm.bringToFront();
+  await adm.goto(`${BASE}/admin/presentation`);
+  await adm.getByRole('button', { name: '전체 비공개' }).click();
+  await adm.getByRole('alertdialog').getByRole('button', { name: '전체 비공개' }).click();
+  await adm.getByText('전체 비공개로 바꿨습니다').waitFor();
+  await fresh.bringToFront();
+  await fresh.getByText('액자를 클릭하면 수상자가 공개됩니다.').waitFor({ state: 'hidden', timeout: 5000 });
+  await adm.getByRole('button', { name: '전체 공개' }).click();
+  await adm.getByRole('alertdialog').getByRole('button', { name: '전체 공개' }).click();
+  await fresh.getByText('액자를 클릭하면 수상자가 공개됩니다.').waitFor({ timeout: 5000 });
 
   // 관리자 다른 화면 레이아웃 점검
   await adm.bringToFront();
