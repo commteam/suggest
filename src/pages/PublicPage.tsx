@@ -156,7 +156,8 @@ function Stage({ settings, onRecheck }: { settings: PublicSettings; onRecheck: (
     setCode(null);
     setGateNotice('접속 코드가 변경되었습니다. 새 코드를 입력해 주세요.');
     resetIntro();
-  }, [resetIntro]);
+    onRecheck(); // 코드가 해제된 경우 "준비 중" 으로 전환
+  }, [resetIntro, onRecheck]);
 
   const { state, retry } = usePublicWinners(settings.gate === 'code' ? code : null, granted, onPresentation, onDenied);
 
