@@ -284,7 +284,7 @@ try {
       if (url.includes('/rest/v1/user_roles')) return json({ role: 'admin' });
       if (url.includes('/rest/v1/winners')) return json([]);
       if (url.includes('/rest/v1/rpc/get_public_settings'))
-        return json({ event_title: 't', event_subtitle: 's', year: 2026, intro_line: 'l', intro_enabled: true, intro_length: 'short', intro_mode: 'instant', sound_default: true, accent_color: '#d9b45a', fanfare_url: null, bgm_url: null, music_source: 'default', music_volume: 0.5, access_code_set: true });
+        return json({ event_title: 't', event_subtitle: 's', year: 2026, intro_line: 'l', intro_enabled: true, intro_length: 'short', intro_mode: 'instant', sound_default: true, accent_color: '#d9b45a', fanfare_url: null, bgm_url: null, music_source: 'default', music_volume: 0.5 });
       return json([]);
     });
     const page = await hostPage(ctx, 'https://teams.microsoft.com', `${APP_SB}/admin?source=teams`);

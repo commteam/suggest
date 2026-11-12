@@ -109,16 +109,11 @@ export class MockProvider implements DataProvider {
 
   // ---------- 공개 ----------
   async getPublicSettings(): Promise<PublicSettings> {
-    // 데모 모드에서는 접속 코드 게이트와 "준비 중" 잠금을 사용하지 않습니다.
-    return { ...this.read().settings, gate: 'open' };
+    return { ...this.read().settings };
   }
 
   async getPublicWinners() {
     return toPublicWinners(this.read().winners);
-  }
-
-  async verifyAccessCode() {
-    return true;
   }
 
   subscribePresentation(cb: (e: PresentationEvent) => void) {
@@ -204,7 +199,7 @@ export class MockProvider implements DataProvider {
   }
 
   async getAdminSettings(): Promise<AdminSettings> {
-    return { ...this.read().settings, access_code_set: this.storage.getItem('awards.demo.code') !== null };
+    return { ...this.read().settings };
   }
 
   async updateSettings(patch: Partial<SiteSettings>) {
@@ -213,12 +208,6 @@ export class MockProvider implements DataProvider {
     this.write(db);
     this.emit({ kind: 'refresh' });
     return this.getAdminSettings();
-  }
-
-  async setAccessCode(code: string) {
-    if (code.trim().length < 6) throw new Error('접속 코드는 6자 이상이어야 합니다.');
-    // 데모 모드는 게이트를 사용하지 않으므로 설정 여부만 기록합니다(원문 저장 안 함).
-    this.storage.setItem('awards.demo.code', 'set');
   }
 
   async setAllRevealed(revealed: boolean) {

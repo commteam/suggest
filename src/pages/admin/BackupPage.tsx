@@ -65,7 +65,7 @@ export default function BackupPage() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
-        <CardTitle desc="우수자와 연출 설정을 JSON 파일로 저장합니다. (접속 코드는 포함되지 않음)">내보내기</CardTitle>
+        <CardTitle desc="우수자와 연출 설정을 JSON 파일로 저장합니다.">내보내기</CardTitle>
         <Button variant="primary" onClick={exportJson} disabled={busy}>
           {busy ? <Loader2 className="animate-spin" /> : <Download />} JSON 내보내기
         </Button>

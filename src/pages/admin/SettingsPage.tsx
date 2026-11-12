@@ -1,4 +1,4 @@
-import { KeyRound, Loader2, Music, Play, Save, Square, Trash2, Upload } from 'lucide-react';
+import { Loader2, Music, Play, Save, Square, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { ErrorState } from '@/components/common/StatusMessage';
@@ -51,7 +51,6 @@ export default function SettingsPage() {
     );
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <AccessCodeCard settings={settings} className="lg:col-span-2" />
       <GeneralForm key={JSON.stringify(pickDraft(settings))} settings={settings} />
       <div className="space-y-6">
         <MusicCard key={settings.bgm_url ?? 'none'} settings={settings} />
@@ -203,7 +202,7 @@ function GeneralForm({ settings }: { settings: AdminSettings }) {
           </div>
           <div className="mt-4 flex items-center gap-4 rounded-lg bg-bg p-4">
             <span className="btn-metal !px-5 !py-2 text-sm">미리보기</span>
-            <span className="metal-text font-serif text-xl font-extrabold">명예의 전당</span>
+            <span className="metal-text text-xl font-extrabold">명예의 전당</span>
           </div>
         </fieldset>
 
@@ -268,75 +267,6 @@ function AudioCard({ kind, label, url }: { kind: AudioKind; label: string; url: 
         )}
       </div>
       <p className="mt-2 text-xs text-muted">사용 허가를 받은 음원만 올려 주세요. 최대 10MB{isDemo ? ' (데모 모드는 3MB)' : ''}</p>
-    </Card>
-  );
-}
-
-function AccessCodeCard({ settings, className }: { settings: AdminSettings; className?: string }) {
-  const [code, setCode] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (code.trim().length < 6) return toast.error('접속 코드는 6자 이상으로 정해 주세요.');
-    if (code !== confirm) return toast.error('확인용 코드가 일치하지 않습니다.');
-    setBusy(true);
-    try {
-      await provider.setAccessCode(code.trim());
-      setAdminSettingsCache(await provider.getAdminSettings());
-      setCode('');
-      setConfirm('');
-      toast.success('접속 코드를 저장했습니다.', { description: '이미 접속한 관람자는 새 코드를 다시 입력해야 합니다.' });
-    } catch (err) {
-      toast.error('접속 코드를 저장하지 못했습니다', { description: errorMessage(err) });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Card className={className}>
-      <form onSubmit={submit} noValidate>
-        <CardTitle
-          desc={
-            isDemo
-              ? '데모 모드에서는 접속 코드 게이트가 꺼져 있어 코드 없이 입장합니다. (Supabase 모드에서 적용)'
-              : '공개 사이트 입구에서 입력하는 코드입니다. 해시로만 저장되며, 코드가 맞아야 서버가 사진과 제안 내용을 내려줍니다.'
-          }
-          action={
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold',
-                settings.access_code_set ? 'bg-accent/15 text-accent-light' : 'bg-[#3a1d14] text-[#ffd9a8]',
-              )}
-            >
-              <KeyRound className="h-3.5 w-3.5" aria-hidden />
-              {isDemo
-                ? '데모 모드 — 게이트 꺼짐'
-                : settings.access_code_set
-                  ? '설정됨'
-                  : '미설정 — 공개 사이트가 “준비 중”으로 잠겨 있음'}
-            </span>
-          }
-        >
-          접속 코드
-        </CardTitle>
-        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <div>
-            <Label htmlFor="ac-new">{settings.access_code_set ? '새 접속 코드' : '접속 코드 정하기'}</Label>
-            <Input id="ac-new" type="password" autoComplete="new-password" value={code} onChange={(e) => setCode(e.target.value)} placeholder="6자 이상" />
-          </div>
-          <div>
-            <Label htmlFor="ac-confirm">코드 확인</Label>
-            <Input id="ac-confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-          </div>
-          <Button type="submit" variant="primary" disabled={busy}>
-            {busy ? <Loader2 className="animate-spin" /> : <KeyRound />}
-            {settings.access_code_set ? '코드 변경' : '코드 저장'}
-          </Button>
-        </div>
-      </form>
     </Card>
   );
 }

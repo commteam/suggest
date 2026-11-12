@@ -15,8 +15,10 @@ describe('MockProvider', () => {
     for (const h of hidden) expect(Object.keys(h).sort()).toEqual(['dept', 'display_order', 'id', 'is_revealed', 'name']);
   });
 
-  it('데모 모드는 게이트를 열어 둠', async () => {
-    expect((await new MockProvider().getPublicSettings()).gate).toBe('open');
+  it('공개 설정에 접속 코드 관련 항목 없음', async () => {
+    const s = await new MockProvider().getPublicSettings();
+    expect(s).not.toHaveProperty('gate');
+    expect(s).not.toHaveProperty('access_code_set');
   });
 
   it('다음 사람 공개 → 이벤트 발생 + 상태 저장', async () => {

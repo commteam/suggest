@@ -79,11 +79,6 @@ export class MusicPlayer {
     this.apply();
   }
 
-  /** prepare() 후 입장이 취소된 경우(예: 접속 코드 오류) 조용히 정리 */
-  cancelPrepared() {
-    if (!this.playing) this.teardownVoices();
-  }
-
   stop(fade = FADE_OUT_SEC) {
     if (!this.playing && !this.media) return;
     this.playing = false;

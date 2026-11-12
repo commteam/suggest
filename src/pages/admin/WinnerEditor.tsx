@@ -184,7 +184,7 @@ export default function WinnerEditor() {
             <ArrowLeft /> 목록
           </Link>
         </Button>
-        <h1 className="font-serif text-xl font-bold">{isNew ? '우수자 추가' : `${form.name} 수정`}</h1>
+        <h1 className="text-xl font-bold">{isNew ? '우수자 추가' : `${form.name} 수정`}</h1>
         <div className="ml-auto flex gap-2 lg:hidden" role="tablist" aria-label="편집/미리보기 전환">
           {(['edit', 'preview'] as const).map((t) => (
             <Button key={t} type="button" role="tab" aria-selected={tab === t} size="sm" variant={tab === t ? 'secondary' : 'ghost'} onClick={() => setTab(t)}>
@@ -197,7 +197,7 @@ export default function WinnerEditor() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className={cn('space-y-6', tab !== 'edit' && 'hidden lg:block')}>
           <Card className="space-y-4">
-            <h2 className="font-serif text-lg font-bold">기본 정보</h2>
+            <h2 className="text-lg font-bold">기본 정보</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="f-name">이름 *</Label>
@@ -238,7 +238,7 @@ export default function WinnerEditor() {
           </Card>
 
           <Card className="space-y-5">
-            <h2 className="font-serif text-lg font-bold">제안 내용</h2>
+            <h2 className="text-lg font-bold">제안 내용</h2>
             <div>
               <Label htmlFor="f-topic">제안 주제 *</Label>
               <Input id="f-topic" value={form.topic} maxLength={200} onChange={(e) => set('topic', e.target.value)} aria-invalid={!!errors.topic} aria-describedby="err-topic" />

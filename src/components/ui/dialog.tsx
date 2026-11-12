@@ -25,7 +25,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
       <AlertDialog.Portal>
         <AlertDialog.Overlay className={overlay} />
         <AlertDialog.Content className={panel}>
-          <AlertDialog.Title className="font-serif text-lg font-bold">{title}</AlertDialog.Title>
+          <AlertDialog.Title className="text-lg font-bold">{title}</AlertDialog.Title>
           <AlertDialog.Description asChild>
             <div className="mt-2 text-sm leading-relaxed text-[#c3cfe3]">{description}</div>
           </AlertDialog.Description>
@@ -60,7 +60,7 @@ export function Modal({ open, onOpenChange, title, description, children, classN
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className={overlay} />
         <DialogPrimitive.Content className={`${panel} ${className ?? ''}`}>
-          <DialogPrimitive.Title className="pr-8 font-serif text-lg font-bold">{title}</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="pr-8 text-lg font-bold">{title}</DialogPrimitive.Title>
           {description ? (
             <DialogPrimitive.Description className="mt-1 text-sm text-[#c3cfe3]">{description}</DialogPrimitive.Description>
           ) : (

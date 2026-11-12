@@ -29,7 +29,7 @@ export default function RequireAdmin({ children }: { children: ReactNode }) {
       <div className="flex min-h-[100svh] items-center justify-center px-4">
         <div role="alert" className="max-w-md rounded-xl border border-line bg-panel p-8 text-center">
           <ShieldAlert className="mx-auto h-8 w-8 text-accent" aria-hidden />
-          <p className="mt-3 font-serif text-lg font-bold">관리자 권한이 없습니다</p>
+          <p className="mt-3 text-lg font-bold">관리자 권한이 없습니다</p>
           <p className="mt-2 text-sm text-muted">
             {state.email ?? '이 계정'}은 관리자로 지정되지 않았습니다. 관리자 지정 방법은 README 의 체크리스트를 확인하세요.
           </p>

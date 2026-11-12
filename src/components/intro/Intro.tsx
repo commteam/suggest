@@ -10,7 +10,7 @@ interface Props {
   mode: 'cinematic' | 'instant';
   reduced: boolean;
   introLine: string;
-  /** 대기 화면(입장하기/접속 코드/준비 중) */
+  /** 첫 화면(제목 + 입장하기) */
   gate: ReactNode;
 }
 
@@ -62,7 +62,7 @@ export function Intro({ state, mode, reduced, introLine, gate }: Props) {
               exit={{ opacity: 0, transition: { duration: 0.25 } }}
             >
               <motion.p
-                className="mx-auto max-w-3xl font-serif text-[1.65rem] leading-snug font-extrabold text-ink sm:text-5xl"
+                className="mx-auto max-w-3xl text-[1.65rem] leading-[1.3] font-extrabold tracking-[-0.02em] text-ink sm:text-5xl"
                 style={{ textShadow: '0 2px 24px rgba(2,5,13,0.95), 0 0 2px rgba(2,5,13,0.9)' }}
                 initial={{ opacity: 0, y: 28 }}
                 animate={state.headline ? { opacity: 1, y: 0 } : { opacity: 0, y: 28 }}
@@ -90,8 +90,8 @@ export function Intro({ state, mode, reduced, introLine, gate }: Props) {
 export function GateTitle({ title, subtitle, year }: { title: string; subtitle: string; year: number }) {
   return (
     <div className="text-center" style={{ textShadow: '0 2px 18px rgba(2,5,13,0.9)' }}>
-      <p className="eyebrow text-base sm:text-lg">The {year} Ceremony</p>
-      <h1 className="mt-3 font-display text-[2.4rem] leading-[1.05] font-semibold tracking-[0.06em] uppercase italic sm:text-7xl">
+      <p className="eyebrow text-[0.7rem] sm:text-sm">The {year} Ceremony</p>
+      <h1 className="mt-4 text-[2.1rem] leading-[1.1] font-extrabold tracking-[0.03em] uppercase sm:text-[4.2rem]">
         <span className="metal-text">{title}</span>
       </h1>
       <div aria-hidden className="mx-auto my-5 flex items-center justify-center gap-3">
@@ -99,7 +99,7 @@ export function GateTitle({ title, subtitle, year }: { title: string; subtitle: 
         <span className="h-1.5 w-1.5 rotate-45 bg-accent" />
         <span className="h-px w-16 bg-[linear-gradient(90deg,var(--c-accent),transparent)]" />
       </div>
-      <p className="font-serif text-lg font-bold text-ink sm:text-2xl">{subtitle}</p>
+      <p className="text-lg font-semibold tracking-[-0.01em] text-ink sm:text-2xl">{subtitle}</p>
     </div>
   );
 }

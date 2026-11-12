@@ -27,8 +27,8 @@ export function WinnerDetail({ winner, compact = false, TitleTag = 'h2' }: { win
           <DevelopingPhoto src={winner.photo_url} alt={`${winner.name} 증명사진`} replayKey={winner.id} />
         </div>
         <motion.div key={`name-${winner.id}`} className="mt-7" {...enter(0.6)}>
-          <p className="eyebrow text-base">No. {winner.display_order}</p>
-          <TitleTag className="mt-1 font-serif text-4xl leading-tight font-extrabold tracking-wide text-ink sm:text-5xl">
+          <p className="eyebrow text-xs sm:text-sm">No. {winner.display_order}</p>
+          <TitleTag className="mt-2 text-4xl leading-tight font-extrabold tracking-[-0.02em] text-ink sm:text-5xl">
             {winner.name}
             {winner.position && (
               <span className="ml-2 align-middle font-sans text-lg font-normal tracking-normal text-muted sm:text-xl">
@@ -50,7 +50,7 @@ export function WinnerDetail({ winner, compact = false, TitleTag = 'h2' }: { win
           <p className="inline-block rounded-full border border-accent/50 px-3 py-0.5 text-xs tracking-[0.2em] text-accent-light">
             제안 주제
           </p>
-          <p className="mt-3 font-serif text-2xl leading-snug font-bold text-ink sm:text-[2rem]">{winner.topic}</p>
+          <p className="mt-3 text-2xl leading-[1.35] font-bold tracking-[-0.02em] text-ink sm:text-[2rem]">{winner.topic}</p>
         </motion.div>
         <motion.div key={`flow-${winner.id}`} {...enter(1)}>
           <StoryFlow as_is={winner.as_is} actions={winner.actions} to_be={winner.to_be} />

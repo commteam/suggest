@@ -30,7 +30,7 @@ export function Pager({ winners, currentId, onSelect, onPrev, onNext, hasPrev, h
                 aria-current={active ? 'page' : undefined}
                 aria-label={`${w.display_order}번${w.is_revealed ? '' : ' (발표 전)'}`}
                 className={cn(
-                  'flex h-9 w-9 items-center justify-center rounded-full font-serif text-sm font-bold transition-all',
+                  'flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition-all',
                   active
                     ? 'text-[#1a1406] shadow-[0_0_18px_color-mix(in_oklab,var(--c-accent)_55%,transparent)]'
                     : 'border border-line text-muted hover:border-accent hover:text-ink',

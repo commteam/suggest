@@ -75,6 +75,8 @@ export function DetailOverlay({ winners, currentId, onNavigate, onClose }: Props
             </div>
           )}
 
+          {/* 스크롤 시 상단 고정 버튼과 본문이 겹쳐 보이지 않도록 */}
+          <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[5] h-20 bg-[linear-gradient(to_bottom,var(--c-bg)_35%,transparent)]" />
           <Dialog.Close className="btn-ghost fixed top-4 left-4 z-10" aria-label="갤러리로 돌아가기">
             <ArrowLeft className="h-4 w-4" aria-hidden />
             <span>갤러리</span>

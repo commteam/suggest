@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { provider } from '@/lib/data/provider';
-import { AccessDeniedError, type PresentationEvent, type PublicSettings, type PublicWinner } from '@/lib/data/types';
+import type { PresentationEvent, PublicSettings, PublicWinner } from '@/lib/data/types';
 
 export type AwardsState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'denied' }
   | { status: 'ready'; winners: PublicWinner[] };
 
 function describeError(e: unknown): string {
@@ -46,46 +45,33 @@ export function usePublicSettings() {
 }
 
 /**
- * 공개 우수자 목록. 발표 이벤트가 오면 다시 불러오고 onEvent 로 알려 줍니다.
+ * 공개 우수자 목록 (누구나 조회, 공개 전 인물은 서버가 이름·소속·순서만 내려줌).
+ * 발표 이벤트가 오면 다시 불러오고 onEvent 로 알려 줍니다.
  */
-export function usePublicWinners(accessCode: string | null, enabled: boolean, onEvent?: (e: PresentationEvent, winners: PublicWinner[]) => void,
-  onDenied?: () => void,
-) {
+export function usePublicWinners(onEvent?: (e: PresentationEvent, winners: PublicWinner[]) => void) {
   const [state, setState] = useState<AwardsState>({ status: 'loading' });
   const onEventRef = useRef(onEvent);
-  const onDeniedRef = useRef(onDenied);
   useEffect(() => {
     onEventRef.current = onEvent;
-    onDeniedRef.current = onDenied;
-  }, [onEvent, onDenied]);
+  }, [onEvent]);
 
   const fetchWinners = useCallback(async () => {
     try {
-      const winners = await provider.getPublicWinners(accessCode);
+      const winners = await provider.getPublicWinners();
       setState({ status: 'ready', winners });
       return winners;
     } catch (e) {
-      if (e instanceof AccessDeniedError) {
-        setState({ status: 'denied' });
-        onDeniedRef.current?.();
-      } else setState({ status: 'error', message: describeError(e) });
+      setState({ status: 'error', message: describeError(e) });
       return null;
     }
-  }, [accessCode]);
+  }, []);
 
   useEffect(() => {
-    if (!enabled) return;
     let alive = true;
     provider
-      .getPublicWinners(accessCode)
+      .getPublicWinners()
       .then((winners) => alive && setState({ status: 'ready', winners }))
-      .catch((e: unknown) => {
-        if (!alive) return;
-        if (e instanceof AccessDeniedError) {
-          setState({ status: 'denied' });
-          onDeniedRef.current?.();
-        } else setState({ status: 'error', message: describeError(e) });
-      });
+      .catch((e: unknown) => alive && setState({ status: 'error', message: describeError(e) }));
     const off = provider.subscribePresentation((ev) => {
       void fetchWinners().then((list) => {
         if (list) onEventRef.current?.(ev, list);
@@ -95,7 +81,7 @@ export function usePublicWinners(accessCode: string | null, enabled: boolean, on
       alive = false;
       off();
     };
-  }, [accessCode, enabled, fetchWinners]);
+  }, [fetchWinners]);
 
   const retry = useCallback(() => {
     setState({ status: 'loading' });

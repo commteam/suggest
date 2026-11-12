@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AccessDeniedError } from './types';
 
 const rpc = vi.fn();
 vi.mock('@supabase/supabase-js', () => ({
@@ -11,27 +10,27 @@ const { SupabaseProvider, translateError } = await import('./SupabaseProvider');
 describe('SupabaseProvider', () => {
   beforeEach(() => rpc.mockReset());
 
-  it('접속 코드 없이는 서버에 묻지도 않고 거부', async () => {
+  it('공개 우수자 목록은 접속 코드 없이 요청', async () => {
+    rpc.mockResolvedValue({ data: [{ id: 'a', display_order: 1, name: 'n', dept: 'd', is_revealed: false }], error: null });
     const p = new SupabaseProvider('https://x.supabase.co', 'anon');
-    await expect(p.getPublicWinners(null)).rejects.toBeInstanceOf(AccessDeniedError);
-    expect(rpc).not.toHaveBeenCalled();
+    const list = await p.getPublicWinners();
+    expect(rpc).toHaveBeenCalledWith('get_public_awards');
+    expect(list).toHaveLength(1);
   });
 
-  it('잘못된 코드 → AccessDeniedError', async () => {
+  it('마이그레이션 9 이전 서버면 안내 메시지', async () => {
     rpc.mockResolvedValue({ data: null, error: { message: 'invalid_access_code', code: '28P01' } });
     const p = new SupabaseProvider('https://x.supabase.co', 'anon');
-    await expect(p.getPublicWinners('nope')).rejects.toBeInstanceOf(AccessDeniedError);
-    expect(rpc).toHaveBeenCalledWith('get_public_awards', { code: 'nope' });
+    await expect(p.getPublicWinners()).rejects.toThrow('20260101000009_remove_access_code.sql');
   });
 
-  it('공개 설정: 코드 미설정이면 not_ready, 설정되면 code', async () => {
+  it('공개 설정: 예전 서버의 access_code_set 은 버림', async () => {
     const p = new SupabaseProvider('https://x.supabase.co', 'anon');
-    rpc.mockResolvedValueOnce({ data: { event_title: 't', access_code_set: false }, error: null });
-    expect((await p.getPublicSettings()).gate).toBe('not_ready');
-    rpc.mockResolvedValueOnce({ data: { event_title: 't', access_code_set: true }, error: null });
+    rpc.mockResolvedValueOnce({ data: { event_title: 't', music_volume: '0.4', access_code_set: true }, error: null });
     const s = await p.getPublicSettings();
-    expect(s.gate).toBe('code');
     expect(s).not.toHaveProperty('access_code_set');
+    expect(s).not.toHaveProperty('gate');
+    expect(s.music_volume).toBe(0.4);
   });
 
   it('복원은 클라이언트 검증 실패 시 서버를 호출하지 않음', async () => {

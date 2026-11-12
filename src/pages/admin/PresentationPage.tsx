@@ -69,7 +69,7 @@ export default function PresentationPage() {
             <p className="text-sm text-muted">
               공개 {revealed} / 전체 {winners.length}
             </p>
-            <p className="mt-2 font-serif text-xl font-bold">
+            <p className="mt-2 text-xl font-bold">
               {next ? (
                 <>
                   다음 차례: <span className="text-accent-light">No. {next.display_order}</span> {next.name}
@@ -107,7 +107,7 @@ export default function PresentationPage() {
         <ul className="divide-y divide-line">
           {winners.map((w) => (
             <li key={w.id} className="flex items-center gap-3 py-3">
-              <span className="w-8 font-serif font-bold text-accent-light">{w.display_order}</span>
+              <span className="w-8 font-bold text-accent-light">{w.display_order}</span>
               <span className="min-w-0 flex-1 truncate">
                 <span className="font-bold">{w.name}</span>
                 <span className="ml-2 text-sm text-muted">{w.dept}</span>

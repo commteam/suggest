@@ -3,7 +3,6 @@ import type { AdminSession, AudioKind, DataProvider } from './DataProvider';
 import { buildBackup, validateBackup } from './backup';
 import { safeLocalStorage } from '../safeStorage';
 import {
-  AccessDeniedError,
   type AdminSettings,
   type PresentationEvent,
   type PublicSettings,
@@ -78,35 +77,27 @@ export class SupabaseProvider implements DataProvider {
     return data as T;
   }
 
-  // ---------- 공개 ----------
+  // ---------- 공개 (접속 코드 없음) ----------
   async getPublicSettings(): Promise<PublicSettings> {
     try {
-      const s = await this.rpc<(SiteSettings & { access_code_set: boolean }) | null>('get_public_settings');
+      const s = await this.rpc<SiteSettings | null>('get_public_settings');
       if (!s) throw new Error('사이트 설정이 없습니다. 마이그레이션을 실행했는지 확인해 주세요.');
-      const { access_code_set, ...rest } = s;
-      return { ...rest, music_volume: Number(rest.music_volume ?? 0.5), gate: access_code_set ? 'code' : 'not_ready' };
+      // 마이그레이션 9 이전 DB 가 돌려주는 access_code_set 은 버림
+      const { access_code_set: _ignored, ...rest } = s as SiteSettings & { access_code_set?: boolean };
+      return { ...rest, music_volume: Number(rest.music_volume ?? 0.5) };
     } catch (e) {
       throw translateError(e);
     }
   }
 
-  async getPublicWinners(accessCode: string | null): Promise<PublicWinner[]> {
-    if (!accessCode) throw new AccessDeniedError('접속 코드가 필요합니다.');
-    const { data, error } = await this.sb.rpc('get_public_awards', { code: accessCode });
+  async getPublicWinners(): Promise<PublicWinner[]> {
+    const { data, error } = await this.sb.rpc('get_public_awards');
     if (error) {
-      if (/invalid_access_code/.test(error.message)) throw new AccessDeniedError();
-      if (/access_not_ready/.test(error.message)) throw new AccessDeniedError('발표 준비 중입니다.');
+      if (/invalid_access_code|access_not_ready|function .*get_public_awards\(\)/.test(error.message))
+        throw new Error('서버 설정이 최신이 아닙니다. Supabase 에서 마이그레이션 20260101000009_remove_access_code.sql 을 실행해 주세요.');
       throw translateError(error);
     }
     return (data ?? []) as PublicWinner[];
-  }
-
-  async verifyAccessCode(code: string) {
-    try {
-      return await this.rpc<boolean>('verify_access_code', { code });
-    } catch (e) {
-      throw translateError(e);
-    }
   }
 
   subscribePresentation(cb: (e: PresentationEvent) => void) {
@@ -227,15 +218,10 @@ export class SupabaseProvider implements DataProvider {
   }
 
   async getAdminSettings(): Promise<AdminSettings> {
-    const [{ data, error }, pub] = await Promise.all([
-      this.sb.from('site_settings').select(SETTINGS_COLS).eq('id', 1).single(),
-      this.rpc<{ access_code_set: boolean }>('get_public_settings').catch((e: unknown) => {
-        throw translateError(e);
-      }),
-    ]);
+    const { data, error } = await this.sb.from('site_settings').select(SETTINGS_COLS).eq('id', 1).single();
     if (error) throw translateError(error);
     const s = data as unknown as SiteSettings;
-    return { ...s, music_volume: Number(s.music_volume), access_code_set: !!pub?.access_code_set };
+    return { ...s, music_volume: Number(s.music_volume) };
   }
 
   async updateSettings(patch: Partial<SiteSettings>) {
@@ -245,14 +231,6 @@ export class SupabaseProvider implements DataProvider {
     if (prev && 'fanfare_url' in patch && prev.fanfare_url !== patch.fanfare_url) await this.removeFile(prev.fanfare_url, AUDIO_BUCKET);
     if (prev && 'bgm_url' in patch && prev.bgm_url !== patch.bgm_url) await this.removeFile(prev.bgm_url, AUDIO_BUCKET);
     return this.getAdminSettings();
-  }
-
-  async setAccessCode(code: string) {
-    try {
-      await this.rpc('set_access_code', { code });
-    } catch (e) {
-      throw translateError(e);
-    }
   }
 
   async setAllRevealed(revealed: boolean) {
@@ -274,8 +252,7 @@ export class SupabaseProvider implements DataProvider {
 
   async exportBackup() {
     const [settings, winners] = await Promise.all([this.getAdminSettings(), this.listWinners()]);
-    const { access_code_set: _a, ...s } = settings;
-    return buildBackup(s, winners);
+    return buildBackup(settings, winners);
   }
 
   async restoreBackup(payload: unknown) {

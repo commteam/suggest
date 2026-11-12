@@ -1,3 +1,4 @@
+import { Quote } from 'lucide-react';
 import { STORY_PARTS } from './storyParts';
 import { StoryText } from './StoryText';
 
@@ -14,9 +15,9 @@ export function StoryBlock({ eyebrow, label, text, step }: BlockProps) {
   return (
     <article className="card-blue relative rounded-xl p-5 sm:p-7" aria-label={label}>
       <header className="mb-3 flex items-baseline gap-3">
-        <span className="eyebrow text-lg font-semibold sm:text-xl">{eyebrow}</span>
-        <h3 className="font-serif text-base font-bold text-ink sm:text-lg">{label}</h3>
-        <span aria-hidden className="ml-auto font-display text-sm text-muted italic">
+        <span className="eyebrow text-xs font-semibold !tracking-[0.22em] sm:text-sm">{eyebrow}</span>
+        <h3 className="text-base font-bold text-ink sm:text-lg">{label}</h3>
+        <span aria-hidden className="ml-auto text-xs font-light tracking-[0.2em] text-muted tabular-nums">
           0{step}
         </span>
       </header>
@@ -57,14 +58,14 @@ export function ReflectionCard({ text, name }: { text: string; name: string }) {
   return (
     <figure className="card-blue relative mt-10 overflow-hidden rounded-xl px-6 pt-7 pb-7 sm:px-10 sm:pt-8" aria-label="진행 소감">
       <p className="mb-4 flex items-baseline gap-3">
-        <span className="eyebrow text-lg font-semibold sm:text-xl">REFLECTION</span>
-        <span className="font-serif text-base font-bold text-ink sm:text-lg">진행 소감</span>
+        <span className="eyebrow text-xs font-semibold !tracking-[0.22em] sm:text-sm">REFLECTION</span>
+        <span className="text-base font-bold text-ink sm:text-lg">진행 소감</span>
       </p>
-      <span aria-hidden className="-mb-4 block h-12 font-serif text-7xl leading-none text-accent/80">“</span>
-      <blockquote className="font-serif text-lg leading-relaxed text-ink italic sm:text-xl">
+      <Quote aria-hidden className="mb-3 h-7 w-7 fill-accent/80 text-accent/80" strokeWidth={0} />
+      <blockquote className="text-lg leading-[1.7] font-medium tracking-[-0.01em] text-ink sm:text-xl">
         <StoryText text={text} />
       </blockquote>
-      <figcaption className="mt-5 text-right font-display text-base text-accent-light italic">— {name}</figcaption>
+      <figcaption className="mt-5 text-right text-sm font-normal tracking-[0.18em] text-accent-light">— {name}</figcaption>
     </figure>
   );
 }

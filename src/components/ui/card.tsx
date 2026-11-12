@@ -9,7 +9,7 @@ export function CardTitle({ children, desc, action }: { children: ReactNode; des
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="font-serif text-lg font-bold text-ink">{children}</h2>
+        <h2 className="text-lg font-bold text-ink">{children}</h2>
         {desc && <p className="mt-1 text-sm text-muted">{desc}</p>}
       </div>
       {action}

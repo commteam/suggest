@@ -1,11 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource/nanum-myeongjo/400.css';
-import '@fontsource/nanum-myeongjo/700.css';
-import '@fontsource/nanum-myeongjo/800.css';
-import '@fontsource/gowun-dodum/400.css';
-import '@fontsource/cormorant-garamond/400-italic.css';
-import '@fontsource/cormorant-garamond/600-italic.css';
+// Pretendard 가변 글꼴(한글 포함 동적 서브셋, font-display: swap) — 자체 호스팅, 외부 글꼴 주소 없음
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './styles/index.css';
 import App from './App';
 import { initTeamsIfEmbedded } from './lib/teams/teams';
