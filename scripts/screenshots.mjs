@@ -28,7 +28,7 @@ async function newPage(browser, vp, { skipIntro = true, reduce = false } = {}) {
     viewport: { width: vp.width, height: vp.height },
     isMobile: !!vp.isMobile,
     hasTouch: !!vp.hasTouch,
-    deviceScaleFactor: 1,
+    deviceScaleFactor: Number(process.env.SCALE ?? 1),
     reducedMotion: reduce ? 'reduce' : 'no-preference',
   });
   await ctx.addInitScript((skip) => {
