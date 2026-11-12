@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { safeLocalStorage } from './safeStorage';
 
 /** 관람자가 한 번 열어 본 액자 id 목록 (브라우저별 localStorage) */
 const KEY = 'awards.opened.v1';
@@ -8,7 +9,7 @@ let cache: ReadonlySet<string> | null = null;
 function load(): ReadonlySet<string> {
   if (cache) return cache;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = safeLocalStorage().getItem(KEY);
     cache = new Set(raw ? (JSON.parse(raw) as string[]) : []);
   } catch {
     cache = new Set();
@@ -19,7 +20,7 @@ function load(): ReadonlySet<string> {
 function save(next: Set<string>) {
   cache = next;
   try {
-    localStorage.setItem(KEY, JSON.stringify([...next]));
+    safeLocalStorage().setItem(KEY, JSON.stringify([...next]));
   } catch {
     /* 저장 실패해도 화면 동작에는 영향 없음 */
   }

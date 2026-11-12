@@ -1,10 +1,11 @@
 import { ImagePlus, Loader2, Trash2, Upload } from 'lucide-react';
-import { useCallback, useId, useRef, useState, type DragEvent } from 'react';
+import { useCallback, useState, type DragEvent } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import { toast } from 'sonner';
 import { Silhouette } from '@/components/gallery/Silhouette';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/dialog';
+import { FileButton } from '@/components/ui/file-button';
 import { provider } from '@/lib/data/provider';
 import { errorMessage } from '@/lib/errors';
 import { cropAndEncode, PHOTO_INPUT_MAX_BYTES, PHOTO_TYPES } from '@/lib/image/processPhoto';
@@ -18,8 +19,6 @@ interface Props {
 
 /** 증명사진: 선택/드래그앤드롭 → 3:4 크롭(확대/이동) → 1200px WebP 업로드 */
 export function PhotoUploader({ value, name, onChange }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const inputId = useId();
   const [src, setSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -89,30 +88,20 @@ export function PhotoUploader({ value, name, onChange }: Props) {
           </div>
         </div>
         <div className="min-w-0 flex-1 text-sm text-muted">
-          <p className="mb-2">사진을 끌어다 놓거나 선택하세요. 3:4로 자르고 최대 1200px WebP로 저장됩니다.</p>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" onClick={() => inputRef.current?.click()}>
-              <Upload /> 사진 선택
-            </Button>
+            <FileButton accept={PHOTO_TYPES.join(',')} inputLabel="증명사진 파일 선택" onFile={pick} variant="primary" size="md">
+              <Upload /> 파일 선택
+            </FileButton>
             {value && (
-              <Button type="button" size="sm" variant="ghost" onClick={() => onChange(null)}>
+              <Button type="button" size="md" variant="ghost" onClick={() => onChange(null)}>
                 <Trash2 /> 사진 빼기
               </Button>
             )}
           </div>
+          <p className="mt-2 text-xs leading-relaxed">
+            JPG·PNG·WebP. 이 칸에 사진을 끌어다 놓아도 됩니다. 3:4로 자르고 최대 1200px WebP로 저장됩니다.
+          </p>
         </div>
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="file"
-          accept={PHOTO_TYPES.join(',')}
-          className="sr-only"
-          aria-label="증명사진 파일 선택"
-          onChange={(e) => {
-            pick(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
       </div>
 
       <Modal open={!!src} onOpenChange={(o) => !o && !busy && setSrc(null)} title="사진 자르기 (3:4)" description="드래그해서 위치를, 슬라이더로 확대를 조절하세요.">

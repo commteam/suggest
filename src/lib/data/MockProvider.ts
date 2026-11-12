@@ -2,6 +2,7 @@ import type { AdminSession, AudioKind, DataProvider } from './DataProvider';
 import { buildBackup, validateBackup } from './backup';
 import { toPublicWinners } from './mask';
 import { DEFAULT_SETTINGS, SEED_WINNERS } from './seedData';
+import { safeLocalStorage, safeSessionStorage } from '../safeStorage';
 import {
   MAX_WINNERS,
   type AdminSettings,
@@ -46,7 +47,7 @@ export class MockProvider implements DataProvider {
   private listeners = new Set<(e: PresentationEvent) => void>();
   private authListeners = new Set<() => void>();
 
-  constructor(private storage: Storage = localStorage) {
+  constructor(private storage: Storage = safeLocalStorage()) {
     this.channel?.addEventListener('message', (m) => this.dispatchLocal(m.data as PresentationEvent));
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
@@ -129,18 +130,18 @@ export class MockProvider implements DataProvider {
 
   // ---------- 인증 ----------
   async getSession(): Promise<AdminSession | null> {
-    return sessionStorage.getItem(SESSION_KEY) === '1' ? { email: 'demo@local', isAdmin: true } : null;
+    return safeSessionStorage().getItem(SESSION_KEY) === '1' ? { email: 'demo@local', isAdmin: true } : null;
   }
 
   async signIn(_email: string, password: string): Promise<AdminSession> {
     if (password !== DEMO_PASSWORD) throw new Error('비밀번호가 올바르지 않습니다. (데모 비밀번호: demo1234)');
-    sessionStorage.setItem(SESSION_KEY, '1');
+    safeSessionStorage().setItem(SESSION_KEY, '1');
     this.authListeners.forEach((l) => l());
     return { email: 'demo@local', isAdmin: true };
   }
 
   async signOut() {
-    sessionStorage.removeItem(SESSION_KEY);
+    safeSessionStorage().removeItem(SESSION_KEY);
     this.authListeners.forEach((l) => l());
   }
 

@@ -1,9 +1,10 @@
 import { Download, Loader2, RotateCcw, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { FileButton } from '@/components/ui/file-button';
 import { validateBackup } from '@/lib/data/backup';
 import { MockProvider } from '@/lib/data/MockProvider';
 import { isDemo, provider } from '@/lib/data/provider';
@@ -11,7 +12,6 @@ import { errorMessage } from '@/lib/errors';
 import { setAdminSettingsCache } from './useAdminSettings';
 
 export default function BackupPage() {
-  const fileRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<{ name: string; payload: unknown; count: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -72,20 +72,9 @@ export default function BackupPage() {
       </Card>
       <Card>
         <CardTitle desc="내보낸 JSON 파일로 전체 데이터를 복원합니다. 파일을 먼저 검사한 뒤 확인을 받습니다.">가져오기</CardTitle>
-        <Button onClick={() => fileRef.current?.click()} disabled={busy}>
-          <Upload /> JSON 파일 선택
-        </Button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/json,.json"
-          className="sr-only"
-          aria-label="가져올 JSON 파일 선택"
-          onChange={(e) => {
-            void pick(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
+        <FileButton accept="application/json,.json" inputLabel="가져올 JSON 파일 선택" onFile={(f) => void pick(f)} disabled={busy}>
+          <Upload /> 파일 선택 (JSON)
+        </FileButton>
       </Card>
       {isDemo && provider instanceof MockProvider && (
         <Card className="md:col-span-2">

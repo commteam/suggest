@@ -10,3 +10,5 @@ coverage
 .vite
 screenshots/tmp
 docs/screenshots
+teams-app/build
+teams-app/.app-id

@@ -1,9 +1,10 @@
 import { KeyRound, Loader2, Music, Play, Save, Square, Trash2, Upload } from 'lucide-react';
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { ErrorState } from '@/components/common/StatusMessage';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
+import { FileButton } from '@/components/ui/file-button';
 import { Input, Label } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import type { AudioKind } from '@/lib/data/DataProvider';
@@ -217,8 +218,6 @@ function GeneralForm({ settings }: { settings: AdminSettings }) {
 }
 
 function AudioCard({ kind, label, url }: { kind: AudioKind; label: string; url: string | null }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const id = useId();
   const [busy, setBusy] = useState(false);
   const field = kind === 'fanfare' ? 'fanfare_url' : 'bgm_url';
 
@@ -259,27 +258,15 @@ function AudioCard({ kind, label, url }: { kind: AudioKind; label: string; url: 
       </CardTitle>
       {url ? <audio controls src={url} className="mb-3 w-full" aria-label={`${label} 미리 듣기`} /> : <p className="mb-3 text-sm text-muted">등록된 음원 없음</p>}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" onClick={() => ref.current?.click()} disabled={busy}>
-          {busy ? <Loader2 className="animate-spin" /> : <Upload />} mp3 올리기
-        </Button>
+        <FileButton accept=".mp3,.wav,.ogg,.m4a,.aac,audio/*" inputLabel={`${label} 음원 파일 선택`} onFile={(f) => void upload(f)} disabled={busy} size="sm">
+          {busy ? <Loader2 className="animate-spin" /> : <Upload />} 파일 선택 (mp3)
+        </FileButton>
         {url && (
           <Button type="button" size="sm" variant="ghost" onClick={remove} disabled={busy}>
             <Trash2 /> 삭제
           </Button>
         )}
       </div>
-      <input
-        ref={ref}
-        id={id}
-        type="file"
-        accept=".mp3,.wav,.ogg,.m4a,.aac,audio/*"
-        className="sr-only"
-        aria-label={`${label} 음원 파일 선택`}
-        onChange={(e) => {
-          void upload(e.target.files?.[0]);
-          e.target.value = '';
-        }}
-      />
       <p className="mt-2 text-xs text-muted">사용 허가를 받은 음원만 올려 주세요. 최대 10MB{isDemo ? ' (데모 모드는 3MB)' : ''}</p>
     </Card>
   );
@@ -361,7 +348,6 @@ function MusicCard({ settings }: { settings: AdminSettings }) {
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
   const hasUpload = !!settings.bgm_url;
   const effective: MusicSourceSetting = source === 'upload' && hasUpload ? 'upload' : 'default';
   const dirty = source !== settings.music_source || Math.abs(volume - settings.music_volume) > 0.001;
@@ -516,26 +502,15 @@ function MusicCard({ settings }: { settings: AdminSettings }) {
           <p className="mt-1 text-xs text-muted">올린 음악이 없으면 기본 웅장한 음악을 사용합니다.</p>
         )}
         <div className="mt-2 flex flex-wrap gap-2">
-          <Button type="button" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-            {uploading ? <Loader2 className="animate-spin" /> : <Upload />} mp3 올리기
-          </Button>
+          <FileButton accept=".mp3,.wav,.ogg,.m4a,.aac,audio/*" inputLabel="배경음악 파일 선택" onFile={(f) => void upload(f)} disabled={uploading} size="sm">
+            {uploading ? <Loader2 className="animate-spin" /> : <Upload />} 파일 선택 (mp3)
+          </FileButton>
           {settings.bgm_url && (
             <Button type="button" size="sm" variant="ghost" onClick={removeUpload} disabled={uploading}>
               <Trash2 /> 업로드한 음악 삭제
             </Button>
           )}
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".mp3,.wav,.ogg,.m4a,.aac,audio/*"
-          className="sr-only"
-          aria-label="배경음악 파일 선택"
-          onChange={(e) => {
-            void upload(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
         <p className="mt-3 rounded-lg border border-accent/30 bg-accent/5 p-3 text-xs leading-relaxed text-[#c3cfe3]">
           ⚠️ 사내 행사에 사용할 <strong className="text-ink">사용 허가(라이선스)를 받은 음원만</strong> 올려 주세요. 시중 음원·영화
           OST 등 저작권이 있는 곡은 허가 없이 쓸 수 없습니다. 기본 음악은 사이트가 직접 합성하므로 저작권 걱정 없이 쓸 수 있습니다.

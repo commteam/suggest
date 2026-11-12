@@ -20,5 +20,6 @@
   for = "/*"
   [headers.values]
     X-Content-Type-Options = "nosniff"
-    X-Frame-Options = "DENY"
+    # iframe 삽입은 Microsoft Teams(및 Microsoft 365) 도메인에서만 허용 — X-Frame-Options 대신 CSP frame-ancestors 사용
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' data: blob: https://*.supabase.co; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://res.cdn.office.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self' https://teams.microsoft.com https://*.teams.microsoft.com https://*.office.com https://*.microsoft365.com https://*.microsoft.com https://teams.cloud.microsoft https://*.cloud.microsoft"
     Referrer-Policy = "strict-origin-when-cross-origin"
