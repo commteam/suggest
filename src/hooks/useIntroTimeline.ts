@@ -7,8 +7,10 @@ import {
   introReducer,
   type IntroCue,
 } from '@/lib/intro/timeline';
+import type { IntroMode } from '@/lib/data/types';
 
 interface Options {
+  mode: IntroMode;
   length: 'standard' | 'short';
   reduced: boolean;
   /** 처음부터 끝난 상태로 시작 (오프닝 꺼짐/이미 본 경우) */
@@ -24,7 +26,7 @@ interface Options {
  * 오프닝 타임라인. UI 와 분리된 상태 기계 + 스케줄러.
  * skip() 은 대기 중인 모든 타이머를 취소하고 onCancel 로 오디오를 정리합니다.
  */
-export function useIntroTimeline({ length, reduced, startFinished, onCue, onCancel, onDone }: Options) {
+export function useIntroTimeline({ mode, length, reduced, startFinished, onCue, onCancel, onDone }: Options) {
   const [state, dispatch] = useReducer(introReducer, startFinished ? FINISHED_INTRO : INITIAL_INTRO);
   const schedulerRef = useRef<ReturnType<typeof createScheduler> | null>(null);
   const cbRef = useRef({ onCue, onCancel, onDone });
@@ -43,7 +45,7 @@ export function useIntroTimeline({ length, reduced, startFinished, onCue, onCanc
     dispatch({ type: 'start' });
     const scheduler = createScheduler();
     schedulerRef.current = scheduler;
-    scheduler.run(buildCues(length, reduced), (cue) => {
+    scheduler.run(buildCues({ mode, length, reduced }), (cue) => {
       dispatch({ type: 'cue', cue });
       cbRef.current.onCue?.(cue);
       if (cue.type === 'done') {
@@ -51,7 +53,7 @@ export function useIntroTimeline({ length, reduced, startFinished, onCue, onCanc
         cbRef.current.onDone?.();
       }
     });
-  }, [cancel, length, reduced]);
+  }, [cancel, mode, length, reduced]);
 
   const skip = useCallback(() => {
     cancel();

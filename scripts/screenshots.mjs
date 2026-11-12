@@ -23,7 +23,7 @@ const VIEWPORTS = {
 
 const errors = [];
 
-async function newPage(browser, vp, { skipIntro = true, reduce = false } = {}) {
+async function newPage(browser, vp, { reduce = false } = {}) {
   const ctx = await browser.newContext({
     viewport: { width: vp.width, height: vp.height },
     isMobile: !!vp.isMobile,
@@ -31,9 +31,6 @@ async function newPage(browser, vp, { skipIntro = true, reduce = false } = {}) {
     deviceScaleFactor: Number(process.env.SCALE ?? 1),
     reducedMotion: reduce ? 'reduce' : 'no-preference',
   });
-  await ctx.addInitScript((skip) => {
-    if (skip) sessionStorage.setItem('awards.intro.seen', '1');
-  }, skipIntro);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
   page.on('console', (m) => m.type() === 'error' && errors.push(`[console] ${m.text()}`));
@@ -46,8 +43,9 @@ async function gallery(browser) {
   for (const [key, vp] of Object.entries(VIEWPORTS)) {
     const page = await newPage(browser, vp);
     await page.goto(BASE + '/');
-    await page.waitForSelector('#gallery-title');
-    await page.waitForTimeout(2500);
+    await page.getByRole('button', { name: '입장하기' }).click();
+    await page.getByRole('button', { name: '처음 화면으로' }).waitFor();
+    await page.waitForTimeout(1500);
     await shot(page, `${key}-gallery`, { fullPage: true });
 
     await page.getByRole('button', { name: /1번 액자/ }).click();
@@ -74,18 +72,16 @@ async function gallery(browser) {
 }
 
 async function intro(browser) {
+  // 바로 입장(기본): 클릭 후 약 1.5초 동안 커튼이 열리며 갤러리 등장
   const marks = [
-    ['01-curtain-closed', 0, 2500],
-    ['02-headline', 1, 3200],
-    ['03-dots', 1, 6300],
-    ['04-flash', 1, 8200],
-    ['05-finale-white', 1, 9000],
-    ['06-curtain-opening', 1, 10100],
-    ['07-gallery', 1, 14800],
+    ['01-gate', 0, 2500],
+    ['02-curtain-opening', 1, 350],
+    ['03-curtain-half', 1, 900],
+    ['04-gallery', 1, 2600],
   ];
   for (const [key, vp] of Object.entries(VIEWPORTS)) {
     for (const [name, clickFirst, wait] of marks) {
-      const page = await newPage(browser, vp, { skipIntro: false });
+      const page = await newPage(browser, vp);
       await page.goto(BASE + '/');
       if (clickFirst) {
         await page.getByRole('button', { name: '입장하기' }).click();
@@ -94,7 +90,7 @@ async function intro(browser) {
       await shot(page, `${key}-intro-${name}`);
       await page.context().close();
     }
-    const page = await newPage(browser, vp, { skipIntro: false, reduce: true });
+    const page = await newPage(browser, vp, { reduce: true });
     await page.goto(BASE + '/');
     await page.getByRole('button', { name: '입장하기' }).click();
     await page.waitForTimeout(2500);

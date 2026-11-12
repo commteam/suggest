@@ -17,19 +17,3 @@ export function storeCode(code: string | null) {
     /* ignore */
   }
 }
-
-const SEEN = 'awards.intro.seen';
-export function introSeen() {
-  try {
-    return sessionStorage.getItem(SEEN) === '1';
-  } catch {
-    return false;
-  }
-}
-export function markIntroSeen() {
-  try {
-    sessionStorage.setItem(SEEN, '1');
-  } catch {
-    /* ignore */
-  }
-}

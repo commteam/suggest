@@ -8,10 +8,13 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   intro_line: '2026 제안제도 우수 수행자를 소개합니다',
   intro_enabled: true,
   intro_length: 'standard',
+  intro_mode: 'instant',
   sound_default: true,
   accent_color: '#d9b45a',
   fanfare_url: null,
   bgm_url: null,
+  music_source: 'default',
+  music_volume: 0.5,
 };
 
 const T = '2026-01-01T00:00:00.000Z';

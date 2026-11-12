@@ -58,6 +58,14 @@ export const INTRO_TIMING: Record<'standard' | 'short', IntroTiming> = {
   },
 };
 
+/** 바로 입장(기본): 커튼이 약 1.5초 동안 열리며 갤러리 액자가 차례로 떠오름 */
+export const INSTANT_TIMING = {
+  finaleAt: 0,
+  /** 커튼이 열리기 시작하자마자 액자 등장 시작 */
+  galleryAt: 120,
+  doneAt: 1700,
+};
+
 /** prefers-reduced-motion: 커튼 열림 + 짧은 페이드만 */
 export const REDUCED_TIMING = {
   finaleAt: 0,
@@ -66,7 +74,9 @@ export const REDUCED_TIMING = {
 };
 
 /** 커튼이 완전히 열리는 데 걸리는 시간 */
-export const CURTAIN_OPEN_MS = { normal: 2600, reduced: 900 };
+export const CURTAIN_OPEN_MS = { cinematic: 2600, instant: 1500, reduced: 900 };
+/** 바로 입장 시 금색 색종이 양(1 = 시네마틱 피날레) */
+export const INSTANT_CONFETTI_SCALE = 0.45;
 /** 색종이 지속 시간 */
 export const CONFETTI_MS = 6500;
 /** 갤러리 액자가 차례로 떠오르는 간격 */

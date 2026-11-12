@@ -20,7 +20,21 @@ interface Piece {
  * 금색·아이보리·스카이블루 색종이. burstKey 가 바뀔 때마다 한 번 터집니다.
  * scale 로 양을 조절(발표 모드 개별 공개는 작게).
  */
-export function Confetti({ burstKey, scale = 1, originX = 0.5 }: { burstKey: number; scale?: number; originX?: number }) {
+export function Confetti({
+  burstKey,
+  scale = 1,
+  originX = 0.5,
+  palette = 'full',
+  sides,
+}: {
+  burstKey: number;
+  scale?: number;
+  originX?: number;
+  /** full: 금색·아이보리·스카이블루 / gold: 금색 계열만 */
+  palette?: 'full' | 'gold';
+  /** 양옆에서 쏘아 올리기 (기본: scale ≥ 1 일 때) */
+  sides?: boolean;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -37,10 +51,14 @@ export function Confetti({ burstKey, scale = 1, originX = 0.5 }: { burstKey: num
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const accent = getComputedStyle(document.documentElement).getPropertyValue('--c-accent').trim() || '#d9b45a';
-    const colors = [accent, accent, '#f3d98b', '#f4ecd8', '#fffaf0', '#5b8def', '#9cc0ff'];
+    const colors =
+      palette === 'gold'
+        ? [accent, accent, '#f3d98b', '#e9c46a', '#fff1c7']
+        : [accent, accent, '#f3d98b', '#f4ecd8', '#fffaf0', '#5b8def', '#9cc0ff'];
+    const useSides = sides ?? scale >= 1;
     const n = Math.round(260 * particleBudget() * scale);
     const pieces: Piece[] = Array.from({ length: n }, (_, i) => {
-      const fromSide = scale >= 1 && i % 3 !== 0;
+      const fromSide = useSides && i % 3 !== 0;
       const left = i % 2 === 0;
       return {
         x: fromSide ? (left ? -10 : w + 10) : w * originX + (Math.random() - 0.5) * w * 0.5,
@@ -98,7 +116,7 @@ export function Confetti({ burstKey, scale = 1, originX = 0.5 }: { burstKey: num
       cancelAnimationFrame(raf);
       ctx.clearRect(0, 0, w, h);
     };
-  }, [burstKey, scale, originX]);
+  }, [burstKey, scale, originX, palette, sides]);
 
   return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-[70] h-full w-full" />;
 }

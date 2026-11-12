@@ -1,4 +1,4 @@
-import { KeyRound, Loader2, Music, Save, Trash2, Upload } from 'lucide-react';
+import { KeyRound, Loader2, Music, Play, Save, Square, Trash2, Upload } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { ErrorState } from '@/components/common/StatusMessage';
@@ -8,7 +8,9 @@ import { Input, Label } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import type { AudioKind } from '@/lib/data/DataProvider';
 import { isDemo, provider } from '@/lib/data/provider';
-import type { AdminSettings, SiteSettings } from '@/lib/data/types';
+import type { MusicSource } from '@/lib/audio/music/MusicPlayer';
+import { sound } from '@/lib/audio/SoundEngine';
+import type { AdminSettings, MusicSourceSetting, SiteSettings } from '@/lib/data/types';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { setAdminSettingsCache, useAdminSettingsStore } from './useAdminSettings';
@@ -22,7 +24,7 @@ const AUDIO_MAX = 10 * 1024 * 1024;
 
 type Draft = Pick<
   SiteSettings,
-  'event_title' | 'event_subtitle' | 'year' | 'intro_line' | 'intro_enabled' | 'intro_length' | 'sound_default' | 'accent_color'
+  'event_title' | 'event_subtitle' | 'year' | 'intro_line' | 'intro_mode' | 'intro_length' | 'sound_default' | 'accent_color'
 >;
 
 const pickDraft = (s: AdminSettings): Draft => ({
@@ -30,7 +32,8 @@ const pickDraft = (s: AdminSettings): Draft => ({
   event_subtitle: s.event_subtitle,
   year: s.year,
   intro_line: s.intro_line,
-  intro_enabled: s.intro_enabled,
+  // 예전 설정에서 오프닝을 껐다면 "바로 입장"으로 보여 줌
+  intro_mode: s.intro_enabled === false ? 'instant' : s.intro_mode,
   intro_length: s.intro_length,
   sound_default: s.sound_default,
   accent_color: s.accent_color,
@@ -50,8 +53,8 @@ export default function SettingsPage() {
       <AccessCodeCard settings={settings} className="lg:col-span-2" />
       <GeneralForm key={JSON.stringify(pickDraft(settings))} settings={settings} />
       <div className="space-y-6">
-        <AudioCard kind="fanfare" label="팡파르" url={settings.fanfare_url} />
-        <AudioCard kind="bgm" label="갤러리 배경음" url={settings.bgm_url} />
+        <MusicCard key={settings.bgm_url ?? 'none'} settings={settings} />
+        <AudioCard kind="fanfare" label="팡파르 효과음" url={settings.fanfare_url} />
       </div>
     </div>
   );
@@ -77,7 +80,8 @@ function GeneralForm({ settings }: { settings: AdminSettings }) {
     if (!/^#[0-9a-fA-F]{6}$/.test(d.accent_color)) return toast.error('포인트 컬러는 #RRGGBB 형식이어야 합니다.');
     setSaving(true);
     try {
-      setAdminSettingsCache(await provider.updateSettings({ ...d, event_title: d.event_title.trim() }));
+      // intro_enabled 는 이제 intro_mode 로 대체되어 항상 켬
+      setAdminSettingsCache(await provider.updateSettings({ ...d, intro_enabled: true, event_title: d.event_title.trim() }));
       toast.success('연출 설정을 저장했습니다.');
     } catch (err) {
       toast.error('저장하지 못했습니다', { description: errorMessage(err) });
@@ -109,18 +113,38 @@ function GeneralForm({ settings }: { settings: AdminSettings }) {
           <Input id="s-line" value={d.intro_line} maxLength={200} onChange={(e) => set('intro_line', e.target.value)} />
         </div>
 
-        <fieldset className="grid gap-4 rounded-lg border border-line p-4 sm:grid-cols-2">
-          <legend className="px-1 text-sm font-bold text-[#c9d4e8]">오프닝</legend>
+        <fieldset className="grid gap-4 rounded-lg border border-line p-4">
+          <legend className="px-1 text-sm font-bold text-[#c9d4e8]">입장 연출</legend>
+          <div role="radiogroup" aria-label="입장 연출" className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                ['instant', '바로 입장', '입장하기를 누르면 커튼이 약 1.5초 만에 열리고 갤러리가 나타납니다.'],
+                ['cinematic', '시네마틱 오프닝', '드럼롤 → 문구 → 골드 점 → 플래시 3회 → 팡파르 후 커튼이 열립니다.'],
+              ] as const
+            ).map(([v, label, desc]) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={d.intro_mode === v}
+                onClick={() => set('intro_mode', v)}
+                className={cn(
+                  'rounded-lg border p-3 text-left',
+                  d.intro_mode === v ? 'border-accent bg-accent/10' : 'border-line hover:border-[#33497c]',
+                )}
+              >
+                <span className={cn('block text-sm font-bold', d.intro_mode === v ? 'text-accent-light' : 'text-ink')}>{label}</span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted">{desc}</span>
+              </button>
+            ))}
+          </div>
           <label className="flex items-center gap-3 text-sm">
-            <Switch checked={d.intro_enabled} onCheckedChange={(v) => set('intro_enabled', v)} aria-label="오프닝 사용" />
-            오프닝 {d.intro_enabled ? '켜짐' : '꺼짐'}
+            <Switch checked={d.sound_default} onCheckedChange={(v) => set('sound_default', v)} aria-label="소리 기본값" />
+            음악·효과음 기본 {d.sound_default ? '켜짐' : '꺼짐'}
+            <span className="text-xs text-muted">(관람자가 우측 상단에서 바꾼 설정이 우선)</span>
           </label>
-          <label className="flex items-center gap-3 text-sm">
-            <Switch checked={d.sound_default} onCheckedChange={(v) => set('sound_default', v)} aria-label="효과음 기본값" />
-            효과음 기본 {d.sound_default ? '켜짐' : '꺼짐'}
-          </label>
-          <div className="sm:col-span-2" role="radiogroup" aria-label="오프닝 길이">
-            <span className="mb-1.5 block text-sm text-muted">길이</span>
+          <div className={cn(d.intro_mode !== 'cinematic' && 'hidden')} role="radiogroup" aria-label="시네마틱 오프닝 길이">
+            <span className="mb-1.5 block text-sm text-muted">시네마틱 오프닝 길이</span>
             <div className="flex gap-2">
               {(
                 [
@@ -229,7 +253,7 @@ function AudioCard({ kind, label, url }: { kind: AudioKind; label: string; url: 
 
   return (
     <Card>
-      <CardTitle desc={kind === 'fanfare' ? '없으면 합성 팡파르를 사용합니다.' : '갤러리가 열린 뒤 반복 재생됩니다. (선택)'}>
+      <CardTitle desc={kind === 'fanfare' ? '사진 공개 순간 음악 위에 짧게 울립니다. 없으면 합성 팡파르를 사용합니다.' : undefined}>
         <Music className="mr-1.5 inline h-4 w-4 text-accent" aria-hidden />
         {label}
       </CardTitle>
@@ -256,7 +280,7 @@ function AudioCard({ kind, label, url }: { kind: AudioKind; label: string; url: 
           e.target.value = '';
         }}
       />
-      <p className="mt-2 text-xs text-muted">최대 10MB{isDemo ? ' (데모 모드는 3MB)' : ''}</p>
+      <p className="mt-2 text-xs text-muted">사용 허가를 받은 음원만 올려 주세요. 최대 10MB{isDemo ? ' (데모 모드는 3MB)' : ''}</p>
     </Card>
   );
 }
@@ -326,6 +350,198 @@ function AccessCodeCard({ settings, className }: { settings: AdminSettings; clas
           </Button>
         </div>
       </form>
+    </Card>
+  );
+}
+
+/** 배경음악: 기본 웅장한 음악 / 업로드한 음악, 음량, 미리듣기 */
+function MusicCard({ settings }: { settings: AdminSettings }) {
+  const [source, setSource] = useState<MusicSourceSetting>(settings.music_source);
+  const [volume, setVolume] = useState(settings.music_volume);
+  const [previewing, setPreviewing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const hasUpload = !!settings.bgm_url;
+  const effective: MusicSourceSetting = source === 'upload' && hasUpload ? 'upload' : 'default';
+  const dirty = source !== settings.music_source || Math.abs(volume - settings.music_volume) > 0.001;
+
+  const src = (): MusicSource => (effective === 'upload' && settings.bgm_url ? { kind: 'url', url: settings.bgm_url } : { kind: 'synth' });
+
+  // 미리듣기 중 음량·음원 변경 즉시 반영, 화면을 떠나면 정지
+  useEffect(() => {
+    sound.setMusicVolume(volume);
+  }, [volume]);
+  useEffect(() => () => sound.stopMusic(0.4), []);
+
+  const togglePreview = () => {
+    if (previewing) {
+      sound.stopMusic(0.6);
+      setPreviewing(false);
+      return;
+    }
+    sound.unlock();
+    sound.setEnabled(true);
+    sound.setMusicVolume(volume);
+    sound.prepareMusic(src());
+    sound.startMusic(src());
+    setPreviewing(true);
+  };
+
+  const choose = (v: MusicSourceSetting) => {
+    setSource(v);
+    if (previewing) {
+      const next: MusicSource = v === 'upload' && settings.bgm_url ? { kind: 'url', url: settings.bgm_url } : { kind: 'synth' };
+      sound.startMusic(next);
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      setAdminSettingsCache(await provider.updateSettings({ music_source: effective, music_volume: Math.round(volume * 100) / 100 }));
+      toast.success('배경음악 설정을 저장했습니다.');
+    } catch (e) {
+      toast.error('저장하지 못했습니다', { description: errorMessage(e) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    if (!AUDIO_TYPES.includes(file.type) && !/\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name))
+      return toast.error('mp3, wav, ogg, m4a 파일만 올릴 수 있습니다.');
+    if (file.size > AUDIO_MAX) return toast.error('음원은 10MB 이하만 올릴 수 있습니다.');
+    setUploading(true);
+    try {
+      const u = await provider.uploadAudio(file, 'bgm');
+      if (previewing) {
+        sound.stopMusic(0.3);
+        setPreviewing(false);
+      }
+      setAdminSettingsCache(await provider.updateSettings({ bgm_url: u, music_source: 'upload' }));
+      toast.success('배경음악을 등록했습니다. “업로드한 음악”으로 설정했습니다.');
+    } catch (e) {
+      toast.error('음원을 올리지 못했습니다', { description: errorMessage(e) });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeUpload = async () => {
+    setUploading(true);
+    try {
+      if (previewing) {
+        sound.stopMusic(0.3);
+        setPreviewing(false);
+      }
+      setAdminSettingsCache(await provider.updateSettings({ bgm_url: null, music_source: 'default' }));
+      toast.success('업로드한 음악을 삭제했습니다. 기본 음악을 사용합니다.');
+    } catch (e) {
+      toast.error('삭제하지 못했습니다', { description: errorMessage(e) });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardTitle desc="입장하기를 누르면 시작되어 갤러리·상세 화면에서도 계속 반복 재생됩니다. 상세 화면에서는 40%로 줄어듭니다.">
+        <Music className="mr-1.5 inline h-4 w-4 text-accent" aria-hidden />
+        배경음악
+      </CardTitle>
+
+      <div role="radiogroup" aria-label="배경음악 선택" className="grid gap-2">
+        {(
+          [
+            ['default', '기본 웅장한 음악', '사이트에서 직접 합성하는 시상식풍 음악 (약 53초 반복)'],
+            ['upload', '업로드한 음악', hasUpload ? '아래에서 올린 mp3를 반복 재생' : '먼저 mp3를 올려 주세요'],
+          ] as const
+        ).map(([v, label, desc]) => {
+          const disabled = v === 'upload' && !hasUpload;
+          const checked = effective === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={checked}
+              aria-disabled={disabled}
+              disabled={disabled}
+              onClick={() => choose(v)}
+              className={cn(
+                'rounded-lg border p-3 text-left disabled:opacity-50',
+                checked ? 'border-accent bg-accent/10' : 'border-line hover:border-[#33497c]',
+              )}
+            >
+              <span className={cn('block text-sm font-bold', checked ? 'text-accent-light' : 'text-ink')}>{label}</span>
+              <span className="mt-0.5 block text-xs text-muted">{desc}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <label className="mt-4 block text-sm">
+        <span className="mb-1.5 flex justify-between font-bold text-[#c9d4e8]">
+          음량 <span className="font-normal text-muted tabular-nums">{Math.round(volume * 100)}%</span>
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={volume}
+          onChange={(e) => setVolume(Number(e.target.value))}
+          className="w-full accent-[var(--c-accent)]"
+          aria-label="배경음악 음량"
+        />
+      </label>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button type="button" size="sm" onClick={togglePreview} aria-pressed={previewing}>
+          {previewing ? <Square /> : <Play />}
+          {previewing ? '미리듣기 정지' : '미리듣기'}
+        </Button>
+        <Button type="button" size="sm" variant="primary" onClick={save} disabled={saving || !dirty}>
+          {saving ? <Loader2 className="animate-spin" /> : <Save />} 음악 설정 저장
+        </Button>
+      </div>
+
+      <div className="mt-5 border-t border-line pt-4">
+        <p className="text-sm font-bold text-[#c9d4e8]">음악 파일 올리기 (선택)</p>
+        {settings.bgm_url ? (
+          <p className="mt-1 text-xs text-muted">업로드한 음악이 있습니다.</p>
+        ) : (
+          <p className="mt-1 text-xs text-muted">올린 음악이 없으면 기본 웅장한 음악을 사용합니다.</p>
+        )}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button type="button" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            {uploading ? <Loader2 className="animate-spin" /> : <Upload />} mp3 올리기
+          </Button>
+          {settings.bgm_url && (
+            <Button type="button" size="sm" variant="ghost" onClick={removeUpload} disabled={uploading}>
+              <Trash2 /> 업로드한 음악 삭제
+            </Button>
+          )}
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".mp3,.wav,.ogg,.m4a,.aac,audio/*"
+          className="sr-only"
+          aria-label="배경음악 파일 선택"
+          onChange={(e) => {
+            void upload(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+        <p className="mt-3 rounded-lg border border-accent/30 bg-accent/5 p-3 text-xs leading-relaxed text-[#c3cfe3]">
+          ⚠️ 사내 행사에 사용할 <strong className="text-ink">사용 허가(라이선스)를 받은 음원만</strong> 올려 주세요. 시중 음원·영화
+          OST 등 저작권이 있는 곡은 허가 없이 쓸 수 없습니다. 기본 음악은 사이트가 직접 합성하므로 저작권 걱정 없이 쓸 수 있습니다.
+          최대 10MB{isDemo ? ' (데모 모드는 3MB)' : ''}.
+        </p>
+      </div>
     </Card>
   );
 }

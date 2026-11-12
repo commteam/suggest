@@ -45,6 +45,10 @@ export interface RevealedWinner {
 export type PublicWinner = HiddenWinner | RevealedWinner;
 
 export type IntroLength = 'standard' | 'short';
+/** 입장 연출: 바로 입장(커튼만 열림) / 시네마틱 오프닝(드럼롤·플래시 등) */
+export type IntroMode = 'instant' | 'cinematic';
+/** 배경음악: 기본 합성 음악 / 업로드한 음악 */
+export type MusicSourceSetting = 'default' | 'upload';
 
 export interface SiteSettings {
   event_title: string;
@@ -53,10 +57,14 @@ export interface SiteSettings {
   intro_line: string;
   intro_enabled: boolean;
   intro_length: IntroLength;
+  intro_mode: IntroMode;
   sound_default: boolean;
   accent_color: string;
   fanfare_url: string | null;
   bgm_url: string | null;
+  music_source: MusicSourceSetting;
+  /** 0~1 */
+  music_volume: number;
 }
 
 /**

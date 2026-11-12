@@ -1,5 +1,8 @@
+import { MusicPlayer, type MusicSource } from './music/MusicPlayer';
+import { DEFAULT_MUSIC_VOLUME } from './music/volume';
+
 /**
- * Web Audio API 로 효과음을 합성합니다.
+ * Web Audio API 로 효과음과 배경음악을 합성합니다.
  * - 사용자 클릭(unlock) 이전에는 어떤 소리도 재생하지 않습니다.
  * - 관리자가 올린 팡파르/배경음 mp3 가 있으면 그것을 우선 사용합니다.
  * - stopAll() 은 진행 중인 모든 소리를 즉시 정리합니다(건너뛰기).
@@ -17,10 +20,11 @@ export class SoundEngine {
   private enabled = true;
   private unlocked = false;
   private fanfareUrl: string | null = null;
-  private bgmUrl: string | null = null;
   private media = new Set<HTMLAudioElement>();
-  private bgm: HTMLAudioElement | null = null;
-  private wantBgm = false;
+  private musicPlayer: MusicPlayer | null = null;
+  private musicVolume = DEFAULT_MUSIC_VOLUME;
+  private musicDucked = false;
+  private musicIntroDucked = false;
 
   get isUnlocked() {
     return this.unlocked;
@@ -37,12 +41,18 @@ export class SoundEngine {
       } catch {
         return;
       }
+      // 공통 출력: 컴프레서 → 출력
+      const comp = this.ctx.createDynamicsCompressor();
+      comp.threshold.value = -16;
+      comp.knee.value = 12;
+      comp.ratio.value = 3.5;
+      comp.attack.value = 0.01;
+      comp.release.value = 0.25;
+      comp.connect(this.ctx.destination);
+      // 효과음
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.8;
-      const comp = this.ctx.createDynamicsCompressor();
-      comp.threshold.value = -14;
-      comp.ratio.value = 4;
-      this.master.connect(comp).connect(this.ctx.destination);
+      this.master.connect(comp);
       this.reverb = this.ctx.createConvolver();
       this.reverb.buffer = this.impulse(2.4);
       const wet = this.ctx.createGain();
@@ -50,26 +60,100 @@ export class SoundEngine {
       this.reverb.connect(wet).connect(this.master);
       this.noise = this.makeNoise();
       this.newBus();
+      // 배경음악: 드라이 + 홀 리버브(합성 임펄스 3.4초)
+      const musicMaster = this.ctx.createGain();
+      musicMaster.gain.value = 0.9;
+      musicMaster.connect(comp);
+      const hall = this.ctx.createConvolver();
+      hall.buffer = this.impulse(3.4, 2.4);
+      const hallWet = this.ctx.createGain();
+      hallWet.gain.value = 0.38;
+      hall.connect(hallWet).connect(musicMaster);
+      this.musicPlayer = new MusicPlayer(this.ctx, musicMaster, hall, this.noise);
+      this.musicPlayer.setVolume(this.musicVolume);
+      this.musicPlayer.setDucked(this.musicDucked);
+      this.musicPlayer.setIntroDucked(this.musicIntroDucked);
+      this.musicPlayer.setEnabled(this.enabled);
+      document.addEventListener('visibilitychange', this.onVisibility);
+    }
+    // 모바일 Safari: 무음 스위치와 관계없이 재생되도록
+    const nav = navigator as Navigator & { audioSession?: { type: string } };
+    if (nav.audioSession) {
+      try {
+        nav.audioSession.type = 'playback';
+      } catch {
+        /* 지원 안 함 */
+      }
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume().catch(() => undefined);
     this.unlocked = true;
   }
 
-  setEnabled(on: boolean) {
-    this.enabled = on;
-    if (!on) {
-      this.stopAll();
-      this.stopBgm();
-    } else if (this.wantBgm) this.startBgm();
+  /** 탭이 백그라운드로 가면 음악을 멈췄다가 돌아오면 이어서 재생 */
+  private onVisibility = () => {
+    if (!this.ctx) return;
+    if (document.hidden) {
+      this.musicPlayer?.pauseForHidden();
+      void this.ctx.suspend().catch(() => undefined);
+    } else if (this.unlocked) {
+      void this.ctx.resume().catch(() => undefined);
+      this.musicPlayer?.resumeFromHidden();
+    }
+  };
+
+  // ---------- 배경음악 ----------
+  /** 사용자 제스처 안에서 호출 (업로드 음원을 미리 걸어 둠) */
+  prepareMusic(src: MusicSource) {
+    this.musicPlayer?.prepare(src);
+  }
+  cancelPreparedMusic() {
+    this.musicPlayer?.cancelPrepared();
+  }
+  startMusic(src: MusicSource) {
+    if (!this.unlocked) return;
+    this.musicPlayer?.start(src);
+  }
+  stopMusic(fade?: number) {
+    this.musicPlayer?.stop(fade);
+  }
+  get musicPlaying() {
+    return !!this.musicPlayer?.isPlaying;
+  }
+  /** 화면 검증(E2E)용 읽기 전용 상태 — 소리 자체에는 영향 없음 */
+  get debugState() {
+    return {
+      unlocked: this.unlocked,
+      enabled: this.enabled,
+      contextState: this.ctx?.state ?? 'none',
+      musicPlaying: this.musicPlaying,
+      musicSource: this.musicPlayer?.currentSource?.kind ?? null,
+      ducked: this.musicDucked,
+      introDucked: this.musicIntroDucked,
+      volume: this.musicVolume,
+    };
+  }
+  setMusicVolume(v: number) {
+    this.musicVolume = v;
+    this.musicPlayer?.setVolume(v);
+  }
+  duckMusic(on: boolean) {
+    this.musicDucked = on;
+    this.musicPlayer?.setDucked(on);
+  }
+  introDuckMusic(on: boolean) {
+    this.musicIntroDucked = on;
+    this.musicPlayer?.setIntroDucked(on);
   }
 
-  setCustomAudio(fanfareUrl: string | null, bgmUrl: string | null) {
-    this.fanfareUrl = fanfareUrl;
-    if (bgmUrl !== this.bgmUrl) {
-      this.stopBgm();
-      this.bgmUrl = bgmUrl;
-      if (this.wantBgm) this.startBgm();
-    }
+  /** 음악과 효과음을 함께 켜고 끔 */
+  setEnabled(on: boolean) {
+    this.enabled = on;
+    if (!on) this.stopAll();
+    this.musicPlayer?.setEnabled(on);
+  }
+
+  setFanfareUrl(url: string | null) {
+    this.fanfareUrl = url;
   }
 
   private get ready() {
@@ -91,13 +175,15 @@ export class SoundEngine {
     return buf;
   }
 
-  private impulse(seconds: number) {
+  /** 합성 홀 리버브 임펄스 (지수 감쇠 잡음, 초기 반사 약간) */
+  private impulse(seconds: number, decay = 3) {
     const ctx = this.ctx!;
     const len = Math.floor(ctx.sampleRate * seconds);
     const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    const pre = Math.floor(ctx.sampleRate * 0.02);
     for (let ch = 0; ch < 2; ch++) {
       const d = buf.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      for (let i = pre; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
     }
     return buf;
   }
@@ -192,12 +278,20 @@ export class SoundEngine {
     this.noiseHit(at, { dur: 0.6, gain: gain * 0.6, type: 'bandpass', freq: 7000, q: 0.5 });
   }
 
-  /** 팡파르: 업로드된 mp3 우선, 없으면 합성 금관 */
-  fanfare() {
+  /** 팡파르: 업로드된 mp3 우선, 없으면 합성 금관. short=true 면 음악 위에 얹는 짧은 버전 */
+  fanfare(short = false) {
     if (!this.ready) return;
-    this.crash(0.4);
+    this.crash(short ? 0.22 : 0.4);
     if (this.fanfareUrl) {
-      this.playMedia(this.fanfareUrl, 0.9);
+      this.playMedia(this.fanfareUrl, short ? 0.7 : 0.9);
+      return;
+    }
+    if (short) {
+      const at = this.ctx!.currentTime + 0.02;
+      const n = [523.25, 659.25, 783.99, 1046.5];
+      n.forEach((f, i) => this.tone(at + i * 0.09, f, i === 3 ? 1.1 : 0.22, 0.07, 'triangle', 0.01));
+      this.tone(at + 0.27, 523.25, 1.1, 0.05, 'triangle', 0.02);
+      this.tone(at + 0.27, 659.25, 1.1, 0.04, 'triangle', 0.02);
       return;
     }
     const ctx = this.ctx!;
@@ -261,24 +355,6 @@ export class SoundEngine {
     return a;
   }
 
-  /** 갤러리 배경음 (업로드된 경우에만) */
-  startBgm() {
-    this.wantBgm = true;
-    if (!this.ready || !this.bgmUrl || this.bgm) return;
-    this.bgm = new Audio(this.bgmUrl);
-    this.bgm.loop = true;
-    this.bgm.volume = 0.3;
-    void this.bgm.play().catch(() => {
-      this.bgm = null;
-    });
-  }
-
-  stopBgm(forget = false) {
-    if (forget) this.wantBgm = false;
-    this.bgm?.pause();
-    this.bgm = null;
-  }
-
   /** 진행 중/예약된 모든 효과음 즉시 정리 */
   stopAll() {
     this.media.forEach((a) => a.pause());
@@ -296,3 +372,7 @@ export class SoundEngine {
 }
 
 export const sound = new SoundEngine();
+
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, '__awardsAudio', { get: () => sound.debugState, configurable: true });
+}

@@ -65,6 +65,29 @@ describe('validateBackup (restore_awards 와 같은 규칙)', () => {
     expect(ids.every((id) => /^[0-9a-f-]{36}$/.test(id))).toBe(true);
   });
 
+  it('이전 버전 백업(입장 연출·음악 항목 없음)은 기본값으로', () => {
+    const p = good();
+    delete p.settings.intro_mode;
+    delete p.settings.music_source;
+    delete p.settings.music_volume;
+    const v = validateBackup(p);
+    expect(v.settings.intro_mode).toBe('instant');
+    expect(v.settings.music_source).toBe('default');
+    expect(v.settings.music_volume).toBe(0.5);
+  });
+
+  it('잘못된 입장 연출·음악 설정 → 오류', () => {
+    const a = good();
+    a.settings.intro_mode = 'slow';
+    expect(() => validateBackup(a)).toThrow('intro_mode');
+    const b = good();
+    b.settings.music_volume = 1.5;
+    expect(() => validateBackup(b)).toThrow('music_volume');
+    const c = good();
+    c.settings.music_source = 'spotify';
+    expect(() => validateBackup(c)).toThrow('music_source');
+  });
+
   it('빈 우수자 목록은 허용 (전체 비우기)', () => {
     const p = good();
     p.winners = [];

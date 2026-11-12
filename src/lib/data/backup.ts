@@ -87,6 +87,17 @@ export function validateBackup(payload: unknown): { settings: SiteSettings; winn
   if (length !== 'standard' && length !== 'short')
     throw new BackupValidationError('settings.intro_length 는 standard 또는 short 여야 합니다.');
 
+  // 이전 버전 백업과의 호환: 새 항목은 없으면 기본값, 있으면 검사
+  const mode = s.intro_mode ?? 'instant';
+  if (mode !== 'instant' && mode !== 'cinematic')
+    throw new BackupValidationError('settings.intro_mode 는 instant 또는 cinematic 이어야 합니다.');
+  const musicSource = s.music_source ?? 'default';
+  if (musicSource !== 'default' && musicSource !== 'upload')
+    throw new BackupValidationError('settings.music_source 는 default 또는 upload 여야 합니다.');
+  const musicVolume = s.music_volume ?? 0.5;
+  if (typeof musicVolume !== 'number' || !(musicVolume >= 0 && musicVolume <= 1))
+    throw new BackupValidationError('settings.music_volume 은 0~1 사이 숫자여야 합니다.');
+
   const settings: SiteSettings = {
     event_title: str('event_title', 120),
     event_subtitle: str('event_subtitle', 200),
@@ -94,10 +105,13 @@ export function validateBackup(payload: unknown): { settings: SiteSettings; winn
     intro_line: str('intro_line', 200),
     intro_enabled: s.intro_enabled !== false,
     intro_length: length,
+    intro_mode: mode,
     sound_default: s.sound_default !== false,
     accent_color: accent,
     fanfare_url: typeof s.fanfare_url === 'string' && s.fanfare_url ? s.fanfare_url : null,
     bgm_url: typeof s.bgm_url === 'string' && s.bgm_url ? s.bgm_url : null,
+    music_source: musicSource,
+    music_volume: Math.round(musicVolume * 100) / 100,
   };
 
   return { settings, winners: winners.sort((a, b) => a.display_order - b.display_order).map((w, i) => ({ ...w, display_order: i + 1 })) };
