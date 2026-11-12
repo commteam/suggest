@@ -215,7 +215,7 @@ export class MockProvider implements DataProvider {
   }
 
   async setAccessCode(code: string) {
-    if (code.trim().length < 4) throw new Error('접속 코드는 4자 이상이어야 합니다.');
+    if (code.trim().length < 6) throw new Error('접속 코드는 6자 이상이어야 합니다.');
     // 데모 모드는 게이트를 사용하지 않으므로 설정 여부만 기록합니다(원문 저장 안 함).
     this.storage.setItem('awards.demo.code', 'set');
   }

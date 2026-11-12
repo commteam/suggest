@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { DemoBadge } from '@/components/common/DemoBadge';
 import PublicPage from '@/pages/PublicPage';
@@ -9,7 +9,7 @@ const AdminApp = lazy(() => import('@/pages/admin/AdminApp'));
 export default function App() {
   return (
     <BrowserRouter>
-      <DemoBadge />
+      <PublicDemoBadge />
       <Routes>
         <Route path="/" element={<PublicPage />} />
         <Route
@@ -36,4 +36,10 @@ export default function App() {
       />
     </BrowserRouter>
   );
+}
+
+/** 관리자 화면은 헤더 안에 배지를 직접 표시 */
+function PublicDemoBadge() {
+  const { pathname } = useLocation();
+  return pathname.startsWith('/admin') ? null : <DemoBadge />;
 }
