@@ -3,26 +3,47 @@
  * 일반 브라우저에서는 false 이므로 Teams SDK 를 내려받지도, 초기화하지도 않습니다.
  */
 
-/** Teams 탭을 띄우는 호스트 도메인 (CSP frame-ancestors 와 같은 범위) */
-export const TEAMS_HOST_PATTERNS = [
-  /^https:\/\/teams\.microsoft\.com$/,
-  /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.teams\.microsoft\.com$/,
-  /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.office\.com$/,
-  /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.microsoft365\.com$/,
-  /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.microsoft\.com$/,
-  /^https:\/\/teams\.cloud\.microsoft$/,
-  /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.cloud\.microsoft$/,
-];
+/**
+ * Teams/Microsoft 365 가 탭을 띄우는 호스트.
+ * vercel.json·netlify.toml 의 CSP frame-ancestors 와 같은 목록이어야 합니다(단위 테스트로 확인).
+ * CSP 와 같은 규칙: "*.도메인" 은 하위 도메인만, 그 외는 정확히 일치.
+ */
+export const FRAME_ANCESTOR_HOSTS = [
+  'teams.microsoft.com',
+  '*.teams.microsoft.com',
+  '*.skype.com',
+  'teams.live.com',
+  '*.teams.live.com',
+  'teams.cloud.microsoft',
+  '*.cloud.microsoft',
+  '*.office.com',
+  '*.office365.com',
+  '*.microsoft365.com',
+  '*.microsoft.com',
+  '*.sharepoint.com',
+  'outlook.office.com',
+  'outlook.office365.com',
+] as const;
+
+function hostMatches(host: string, pattern: string): boolean {
+  if (pattern.startsWith('*.')) {
+    const base = pattern.slice(2);
+    return host.endsWith('.' + base) && host.length > base.length + 1;
+  }
+  return host === pattern;
+}
 
 export function isTeamsOrigin(origin: string | null | undefined): boolean {
   if (!origin) return false;
-  let o = origin;
+  let url: URL;
   try {
-    o = new URL(origin).origin;
+    url = new URL(origin);
   } catch {
     return false;
   }
-  return TEAMS_HOST_PATTERNS.some((p) => p.test(o));
+  if (url.protocol !== 'https:' || url.port !== '') return false;
+  const host = url.hostname.toLowerCase();
+  return FRAME_ANCESTOR_HOSTS.some((p) => hostMatches(host, p));
 }
 
 export interface HostEnv {

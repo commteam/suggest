@@ -160,6 +160,48 @@ try {
     console.log('  ✓ 다른 사이트 삽입 차단 (frame-ancestors)');
   }
 
+  // ---------- 4-1) 허용 호스트별 삽입 / 비슷한 가짜 도메인 차단 (실제 브라우저 CSP 판정) ----------
+  {
+    const allowed = [
+      'https://teams.microsoft.com',
+      'https://abc.teams.microsoft.com',
+      'https://web.skype.com',
+      'https://teams.live.com',
+      'https://x.teams.live.com',
+      'https://teams.cloud.microsoft',
+      'https://m365.cloud.microsoft',
+      'https://www.office.com',
+      'https://outlook.office.com',
+      'https://outlook.office365.com',
+      'https://www.office365.com',
+      'https://www.microsoft365.com',
+      'https://admin.microsoft.com',
+      'https://contoso.sharepoint.com',
+    ];
+    const blocked = [
+      'https://teams.microsoft.com.evil.example',
+      'https://evil-sharepoint.com',
+      'https://outlook.live.com',
+      'https://example.com',
+    ];
+    const loads = async (origin) => {
+      const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } });
+      const page = await hostPage(ctx, origin, `${APP}/`, { respond: false });
+      await page.goto(`${origin}/_e2e/frame`);
+      const ok = await page
+        .frameLocator('#app')
+        .getByRole('button', { name: '입장하기' })
+        .waitFor({ timeout: 6000 })
+        .then(() => true)
+        .catch(() => false);
+      await ctx.close();
+      return ok;
+    };
+    for (const o of allowed) assert(await loads(o), `${o} 에서 삽입 허용`);
+    for (const o of blocked) assert(!(await loads(o)), `${o} 에서 삽입 차단`);
+    console.log(`  ✓ 허용 호스트 ${allowed.length}곳 삽입 가능, 가짜·일반 사이트 ${blocked.length}곳 차단`);
+  }
+
   // ---------- 5) 관리자 진입 경로 + 로그인 유지 + iframe 안 파일 선택 (데모) ----------
   {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });

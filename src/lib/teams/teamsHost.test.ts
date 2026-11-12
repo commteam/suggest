@@ -28,6 +28,27 @@ describe('Teams 호스트 감지', () => {
     expect(hasTeamsSourceParam('?x=1&source=teams')).toBe(true);
   });
 
+  it('새로 허용한 Microsoft 호스트도 Teams 로 인식', () => {
+    for (const o of [
+      'https://teams.live.com',
+      'https://abc.teams.live.com',
+      'https://teams.cloud.microsoft',
+      'https://m365.cloud.microsoft',
+      'https://web.skype.com',
+      'https://contoso.sharepoint.com',
+      'https://outlook.office365.com',
+      'https://www.office365.com',
+      'https://outlook.office.com',
+    ])
+      expect(isTeamsOrigin(o)).toBe(true);
+  });
+
+  it('와일드카드는 하위 도메인만 (CSP 와 같은 규칙)', () => {
+    expect(isTeamsOrigin('https://sharepoint.com')).toBe(false);
+    expect(isTeamsOrigin('https://skype.com')).toBe(false);
+    expect(isTeamsOrigin('https://teams.microsoft.com:8443')).toBe(false);
+  });
+
   it('도메인 판정은 정확히 (접미사 속임 방지)', () => {
     expect(isTeamsOrigin('https://teams.microsoft.com')).toBe(true);
     expect(isTeamsOrigin('https://outlook.office.com')).toBe(true);
@@ -35,6 +56,8 @@ describe('Teams 호스트 감지', () => {
     expect(isTeamsOrigin('http://teams.microsoft.com')).toBe(false);
     expect(isTeamsOrigin('https://teams.microsoft.com.evil.io')).toBe(false);
     expect(isTeamsOrigin('https://evilmicrosoft.com')).toBe(false);
+    expect(isTeamsOrigin('https://evil-sharepoint.com')).toBe(false);
+    expect(isTeamsOrigin('https://teams.live.com.evil.io')).toBe(false);
     expect(isTeamsOrigin('not a url')).toBe(false);
   });
 });
