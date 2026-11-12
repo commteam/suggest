@@ -19,14 +19,14 @@ export function WinnerDetail({ winner, compact = false, TitleTag = 'h2' }: { win
       className={
         compact
           ? 'grid gap-8'
-          : 'grid gap-10 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:gap-16'
+          : 'grid gap-10 lg:grid-cols-[minmax(0,270px)_minmax(0,1fr)] lg:gap-12'
       }
     >
       <aside className={compact ? 'text-center' : 'self-start text-center lg:sticky lg:top-12 lg:text-left'}>
-        <div className={compact ? 'mx-auto w-[220px]' : 'mx-auto w-[240px] sm:w-[280px] lg:w-full'}>
+        <div className={compact ? 'mx-auto w-[170px]' : 'mx-auto w-[180px] sm:w-[210px] lg:w-full'}>
           <DevelopingPhoto src={winner.photo_url} alt={`${winner.name} 증명사진`} replayKey={winner.id} />
         </div>
-        <motion.div key={`name-${winner.id}`} className="mt-7" {...enter(0.6)}>
+        <motion.div key={`name-${winner.id}`} className="mt-5" {...enter(0.6)}>
           <p className="eyebrow text-xs sm:text-sm">No. {winner.display_order}</p>
           <TitleTag className="mt-2 text-4xl leading-tight font-extrabold tracking-[-0.02em] text-ink sm:text-5xl">
             {winner.name}
@@ -39,7 +39,7 @@ export function WinnerDetail({ winner, compact = false, TitleTag = 'h2' }: { win
           <p className="mt-2 text-base text-muted sm:text-lg">{winner.dept}</p>
           <span
             aria-hidden
-            className={compact ? 'mx-auto mt-5 block h-px w-24' : 'mx-auto mt-5 block h-px w-24 lg:mx-0'}
+            className={compact ? 'mx-auto mt-4 block h-px w-24' : 'mx-auto mt-4 block h-px w-24 lg:mx-0'}
             style={{ background: 'linear-gradient(90deg, transparent, var(--c-accent), transparent)' }}
           />
         </motion.div>
