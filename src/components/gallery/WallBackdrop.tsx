@@ -1,5 +1,7 @@
-/** 딥 네이비 벽지 + 하단 웨인스코트 */
-export function WallBackdrop() {
+import { GalleryLights } from './GalleryLights';
+
+/** 딥 네이비 벽지 + 움직이는 무대 조명 + 하단 웨인스코트. lit=true 가 되면 조명이 1.2초에 걸쳐 켜짐 */
+export function WallBackdrop({ lit = true }: { lit?: boolean }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       <div
@@ -19,6 +21,8 @@ export function WallBackdrop() {
       {/* 위쪽은 어둡게, 가운데는 조명 */}
       <div className="absolute inset-0 bg-[radial-gradient(90%_60%_at_50%_35%,rgba(18,48,122,0.35),transparent_70%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#060b17_0%,transparent_22%,transparent_70%,rgba(6,11,23,0.6)_100%)]" />
+      {/* 무대 조명: 벽지 위, 크라운 몰딩·웨인스코트·액자 아래 */}
+      <GalleryLights lit={lit} />
       {/* 크라운 몰딩 */}
       <div className="absolute inset-x-0 top-0 h-3 bg-[linear-gradient(to_bottom,#081a44,#050b1c)] shadow-[0_4px_12px_rgba(0,0,0,0.6)]" />
       {/* 웨인스코트 */}

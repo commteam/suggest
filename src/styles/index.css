@@ -65,6 +65,74 @@
     animation: sheen 3.6s ease-in-out infinite;
     pointer-events: none;
   }
+  /*
+   * 갤러리 무대 조명 (WallBackdrop)
+   * - 천장 부근에서 아래로 퍼지는 서치라이트 빔 3개가 서로 다른 박자로 좌우로 흔들림
+   * - 넓고 부드러운 광원 1개가 벽을 가로질러 천천히 이동
+   * - transform·opacity 만 애니메이션, will-change 는 빔에만
+   */
+  @keyframes gallery-beam-sway {
+    from {
+      transform: translateX(-50%) rotate(var(--beam-from, -10deg));
+    }
+    to {
+      transform: translateX(-50%) rotate(var(--beam-to, 10deg));
+    }
+  }
+  @keyframes gallery-wash-drift {
+    from {
+      transform: translateX(-28%);
+    }
+    to {
+      transform: translateX(28%);
+    }
+  }
+  .gallery-lights {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+  .gallery-lights[data-lit='true'] {
+    opacity: 1;
+  }
+  .gallery-beam {
+    position: absolute;
+    top: -4%;
+    left: var(--beam-x, 50%);
+    width: 960px;
+    height: min(112%, 1150px);
+    transform-origin: 50% 0;
+    transform: translateX(-50%) rotate(var(--beam-rest, 0deg));
+    /* 아래(180deg)를 중심으로 ±22deg 부채꼴, 가장자리는 부드럽게 — 액자 높이까지 닿도록 천천히 사라짐 */
+    background: conic-gradient(
+      from 158deg at 50% 0%,
+      transparent 0deg,
+      var(--beam-color) 12deg,
+      var(--beam-core) 22deg,
+      var(--beam-color) 32deg,
+      transparent 44deg,
+      transparent 360deg
+    );
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+    mix-blend-mode: screen;
+    will-change: transform;
+    animation: gallery-beam-sway var(--beam-dur, 12s) ease-in-out var(--beam-delay, 0s) infinite alternate;
+  }
+  .gallery-wash {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -30%;
+    right: -30%;
+    background: radial-gradient(32% 46% at 50% 38%, rgba(219, 232, 255, 0.09), rgba(219, 232, 255, 0.03) 45%, transparent 72%);
+    mix-blend-mode: screen;
+    animation: gallery-wash-drift 26s ease-in-out -7s infinite alternate;
+  }
+
   /* 금속 질감 — 액자·명패·버튼·강조에만 */
   .metal-border {
     border: 1px solid transparent;
@@ -164,5 +232,16 @@
 @media (prefers-reduced-motion: reduce) {
   .sheen::after {
     display: none;
+  }
+}
+
+/* 움직임 줄이기: 조명은 고정된 은은한 위치로만 (애니메이션·페이드 없음) */
+@media (prefers-reduced-motion: reduce) {
+  .gallery-beam,
+  .gallery-wash {
+    animation: none !important;
+  }
+  .gallery-lights {
+    transition: none !important;
   }
 }

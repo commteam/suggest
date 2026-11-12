@@ -12,6 +12,7 @@
     "screenshots": "node scripts/screenshots.mjs",
     "e2e": "node scripts/e2e.mjs",
     "e2e:teams": "node scripts/e2e-teams.mjs",
+    "check:lights": "node scripts/check-gallery-lights.mjs",
     "teams:package": "node scripts/teams-package.mjs",
     "test:db": "./scripts/test-db.sh"
   },
