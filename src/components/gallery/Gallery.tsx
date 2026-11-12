@@ -20,6 +20,8 @@ interface Props {
 
 /** 명예의 전당 */
 export function Gallery({ title, subtitle, year, winners, opened, show, highlightId, onOpen, status, footer }: Props) {
+  // 로딩·오류·빈 목록(status)이 아니고, 클릭해서 열 수 있는(공개된) 액자가 실제로 있을 때만 안내
+  const showClickHint = !status && !!winners?.some((w) => w.is_revealed);
   return (
     <section aria-labelledby="gallery-title" className="relative isolate flex min-h-[100svh] flex-col overflow-hidden">
       <WallBackdrop />
@@ -51,6 +53,16 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
           <span aria-hidden className="hidden sm:inline"> · </span>
           <span className="block sm:inline">{subtitle}</span>
         </motion.p>
+        {showClickHint && (
+          <motion.p
+            className="mt-3 text-xs whitespace-nowrap text-muted/90 sm:text-sm"
+            initial={{ opacity: 0 }}
+            animate={show ? { opacity: 1 } : undefined}
+            transition={{ duration: 0.9, delay: 0.35 }}
+          >
+            액자를 클릭하면 수상자가 공개됩니다.
+          </motion.p>
+        )}
       </header>
 
       <div className="relative z-10 flex flex-1 items-center justify-center px-4 pt-20 pb-[190px] sm:px-8 sm:pt-24 sm:pb-[calc(22vh+40px)]">
