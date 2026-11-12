@@ -76,11 +76,12 @@ async function gallery(browser) {
 async function intro(browser) {
   const marks = [
     ['01-curtain-closed', 0, 2500],
-    ['02-drumroll', 1, 3000],
-    ['03-dots', 1, 6400],
-    ['04-flash', 1, 8550],
-    ['05-curtain-opening', 1, 10600],
-    ['06-gallery', 1, 15500],
+    ['02-headline', 1, 3200],
+    ['03-dots', 1, 6300],
+    ['04-flash', 1, 8200],
+    ['05-finale-white', 1, 9000],
+    ['06-curtain-opening', 1, 10100],
+    ['07-gallery', 1, 14800],
   ];
   for (const [key, vp] of Object.entries(VIEWPORTS)) {
     for (const [name, clickFirst, wait] of marks) {

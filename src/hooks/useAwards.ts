@@ -48,12 +48,16 @@ export function usePublicSettings() {
 /**
  * 공개 우수자 목록. 발표 이벤트가 오면 다시 불러오고 onEvent 로 알려 줍니다.
  */
-export function usePublicWinners(accessCode: string | null, enabled: boolean, onEvent?: (e: PresentationEvent) => void) {
+export function usePublicWinners(accessCode: string | null, enabled: boolean, onEvent?: (e: PresentationEvent, winners: PublicWinner[]) => void,
+  onDenied?: () => void,
+) {
   const [state, setState] = useState<AwardsState>({ status: 'loading' });
   const onEventRef = useRef(onEvent);
+  const onDeniedRef = useRef(onDenied);
   useEffect(() => {
     onEventRef.current = onEvent;
-  }, [onEvent]);
+    onDeniedRef.current = onDenied;
+  }, [onEvent, onDenied]);
 
   const fetchWinners = useCallback(async () => {
     try {
@@ -61,8 +65,10 @@ export function usePublicWinners(accessCode: string | null, enabled: boolean, on
       setState({ status: 'ready', winners });
       return winners;
     } catch (e) {
-      if (e instanceof AccessDeniedError) setState({ status: 'denied' });
-      else setState({ status: 'error', message: describeError(e) });
+      if (e instanceof AccessDeniedError) {
+        setState({ status: 'denied' });
+        onDeniedRef.current?.();
+      } else setState({ status: 'error', message: describeError(e) });
       return null;
     }
   }, [accessCode]);
@@ -75,12 +81,14 @@ export function usePublicWinners(accessCode: string | null, enabled: boolean, on
       .then((winners) => alive && setState({ status: 'ready', winners }))
       .catch((e: unknown) => {
         if (!alive) return;
-        if (e instanceof AccessDeniedError) setState({ status: 'denied' });
-        else setState({ status: 'error', message: describeError(e) });
+        if (e instanceof AccessDeniedError) {
+          setState({ status: 'denied' });
+          onDeniedRef.current?.();
+        } else setState({ status: 'error', message: describeError(e) });
       });
     const off = provider.subscribePresentation((ev) => {
       void fetchWinners().then((list) => {
-        if (list) onEventRef.current?.(ev);
+        if (list) onEventRef.current?.(ev, list);
       });
     });
     return () => {

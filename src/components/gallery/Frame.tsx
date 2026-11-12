@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { Lock } from 'lucide-react';
+import { FRAME_STAGGER_MS } from '@/components/intro/introConfig';
 import type { PublicWinner } from '@/lib/data/types';
 import { cn } from '@/lib/utils';
 import { Nameplate } from './Nameplate';
@@ -29,10 +30,11 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
 
   return (
     <motion.li
+      data-frame-id={winner.id}
       className="group/frame relative w-[calc(50%-0.75rem)] max-w-[220px] sm:w-[200px] lg:w-[208px]"
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 60, scale: 0.92 }}
       animate={show ? { opacity: 1, y: 0, scale: 1 } : undefined}
-      transition={{ delay: reduce ? 0 : 0.25 + index * 0.22, duration: reduce ? 0.3 : 0.9, ease: [0.2, 0.8, 0.2, 1] }}
+      transition={{ delay: reduce ? 0 : 0.25 + (index * FRAME_STAGGER_MS) / 1000, duration: reduce ? 0.3 : 0.9, ease: [0.2, 0.8, 0.2, 1] }}
     >
       {/* 위에서 떨어지는 푸른 조명 */}
       <div
