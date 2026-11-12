@@ -7,7 +7,7 @@ export function StoryText({ text, className }: { text: string; className?: strin
   const nodes = parseStory(text);
   if (nodes.length === 0) return <p className={cn('text-muted', className)}>내용이 없습니다.</p>;
   return (
-    <div className={cn('space-y-3 leading-relaxed', className)}>
+    <div className={cn('space-y-3 leading-[1.7]', className)}>
       {nodes.map((n, i) =>
         n.type === 'p' ? (
           <p key={i}>

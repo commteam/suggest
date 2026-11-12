@@ -131,6 +131,7 @@ async function run(browser, key, opts, portrait) {
   await pub.goto(BASE + '/');
   await pub.getByRole('button', { name: '입장하기' }).waitFor();
   await pub.waitForTimeout(900);
+  assert((await pub.locator('input').count()) === 0, '첫 화면에 접속 코드 입력칸 없음');
   await snap(pub, key, 'gate');
   assert(!(await audio(pub)).musicPlaying, '클릭 전에는 음악 재생 안 함');
   const t0 = Date.now();
@@ -249,6 +250,8 @@ async function run(browser, key, opts, portrait) {
   // 10. 관리자: 입장 연출을 시네마틱으로 → 건너뛰기 동작
   await adm.bringToFront();
   await adm.goto(`${BASE}/admin/settings`);
+  await adm.getByRole('radio', { name: /시네마틱 오프닝/ }).waitFor();
+  assert((await adm.getByText('접속 코드').count()) === 0, '연출 설정에 접속 코드 영역 없음');
   await adm.getByRole('radio', { name: /시네마틱 오프닝/ }).click();
   await adm.getByRole('button', { name: '설정 저장', exact: true }).click();
   await adm.getByText('연출 설정을 저장했습니다').waitFor();

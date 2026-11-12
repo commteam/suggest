@@ -45,7 +45,7 @@ function Row({ w, index, onDelete }: { w: Winner; index: number; onDelete: (w: W
       >
         <GripVertical className="h-5 w-5" aria-hidden />
       </button>
-      <span className="w-5 shrink-0 text-center font-serif text-lg font-bold text-accent-light sm:w-6">{index + 1}</span>
+      <span className="w-5 shrink-0 text-center text-lg font-bold text-accent-light sm:w-6">{index + 1}</span>
       <div className="w-11 shrink-0 overflow-hidden rounded border border-accent/40 sm:w-12">
         <div className="aspect-[3/4]">
           {w.photo_url ? <img src={w.photo_url} alt="" className="h-full w-full object-cover" /> : <Silhouette />}

@@ -20,8 +20,8 @@ export function Nameplate({ order, title, subtitle, dim, className }: Props) {
     >
       <span className="absolute top-1/2 left-1.5 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#2a1f08]/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]" />
       <span className="absolute top-1/2 right-1.5 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#2a1f08]/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]" />
-      <p className="font-display text-[0.8rem] leading-none font-semibold tracking-[0.14em] text-[#2a1d04] italic">No. {order}</p>
-      <p className="mt-0.5 truncate font-serif text-[0.92rem] leading-tight font-extrabold text-[#1c1403] sm:text-base">{title}</p>
+      <p className="text-[0.7rem] leading-none font-bold tracking-[0.26em] text-[#2a1d04] uppercase tabular-nums">No. {order}</p>
+      <p className="mt-0.5 truncate text-[0.92rem] leading-tight font-extrabold text-[#1c1403] sm:text-base">{title}</p>
       {subtitle && <p className="truncate text-[0.7rem] leading-tight text-[#33260a] sm:text-xs">{subtitle}</p>}
     </div>
   );

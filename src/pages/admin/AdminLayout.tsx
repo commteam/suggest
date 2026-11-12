@@ -32,8 +32,8 @@ export default function AdminLayout() {
       <header className="z-30 border-b border-line bg-[#060b17]/92 backdrop-blur sm:sticky sm:top-0">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="font-display text-xl text-accent-light italic">Awards</span>
-            <span className="font-serif font-bold">관리자</span>
+            <span className="text-xs font-light tracking-[0.32em] text-accent-light uppercase">Awards</span>
+            <span className="font-bold">관리자</span>
             <DemoBadge inline />
           </div>
           <div className="ml-auto flex items-center gap-1.5">

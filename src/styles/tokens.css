@@ -17,6 +17,12 @@
   --c-line: #22345e;
   --c-danger: #f2a7a0;
 
+  /*
+   * 글꼴: Pretendard(자체 호스팅 가변 글꼴) → 시스템 한글 고딕 순.
+   * 사이트 전체가 이 한 줄을 씁니다. 바꿀 때는 여기만 수정하세요.
+   */
+  --font-base: 'Pretendard Variable', Pretendard, 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', system-ui, sans-serif;
+
   --c-accent-light: color-mix(in oklab, var(--c-accent), white 38%);
   --c-accent-dark: color-mix(in oklab, var(--c-accent), black 48%);
 

@@ -106,9 +106,6 @@ export class SoundEngine {
   prepareMusic(src: MusicSource) {
     this.musicPlayer?.prepare(src);
   }
-  cancelPreparedMusic() {
-    this.musicPlayer?.cancelPrepared();
-  }
   startMusic(src: MusicSource) {
     if (!this.unlocked) return;
     this.musicPlayer?.start(src);

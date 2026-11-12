@@ -4,9 +4,9 @@ import { toast } from 'sonner';
 import { CameraFlash } from '@/components/common/CameraFlash';
 import { EmptyState, ErrorState } from '@/components/common/StatusMessage';
 import { DetailOverlay } from '@/components/detail/DetailOverlay';
-import { AccessGate } from '@/components/gate/AccessGate';
 import { Gallery, GallerySkeleton } from '@/components/gallery/Gallery';
 import { Confetti } from '@/components/intro/Confetti';
+import { EnterButton } from '@/components/intro/EnterButton';
 import { GateTitle, Intro } from '@/components/intro/Intro';
 import { INSTANT_CONFETTI_SCALE, REVEAL_SEQUENCE } from '@/components/intro/introConfig';
 import { BackToGateButton, SkipButton, SoundToggle } from '@/components/intro/IntroControls';
@@ -14,11 +14,9 @@ import { RevealSpotlight } from '@/components/presentation/RevealSpotlight';
 import { useAccentColor } from '@/hooks/useAccentColor';
 import { usePublicSettings, usePublicWinners } from '@/hooks/useAwards';
 import { useIntroTimeline } from '@/hooks/useIntroTimeline';
-import { readStoredCode, storeCode } from '@/lib/accessCode';
 import { SoundProvider } from '@/lib/audio/SoundContext';
 import type { MusicSource } from '@/lib/audio/music/MusicPlayer';
 import { sound } from '@/lib/audio/SoundEngine';
-import { provider } from '@/lib/data/provider';
 import type { PresentationEvent, PublicSettings, PublicWinner } from '@/lib/data/types';
 import type { IntroCue } from '@/lib/intro/timeline';
 import { markOpened, useOpenedSet } from '@/lib/openedStore';
@@ -33,7 +31,7 @@ export default function PublicPage() {
         {error ? (
           <ErrorState message={error} onRetry={reload} />
         ) : (
-          <p role="status" className="animate-pulse font-display text-xl text-muted italic">
+          <p role="status" className="animate-pulse text-xs font-light tracking-[0.32em] text-muted uppercase">
             Loading…
           </p>
         )}
@@ -42,16 +40,13 @@ export default function PublicPage() {
   }
   return (
     <SoundProvider defaultOn={settings.sound_default}>
-      <Stage settings={settings} onRecheck={reload} />
+      <Stage settings={settings} />
     </SoundProvider>
   );
 }
 
-function Stage({ settings, onRecheck }: { settings: PublicSettings; onRecheck: () => void }) {
+function Stage({ settings }: { settings: PublicSettings }) {
   const reduced = !!useReducedMotion();
-  const [code, setCode] = useState<string | null>(() => (settings.gate === 'code' ? readStoredCode() : null));
-  const [gateNotice, setGateNotice] = useState<string | null>(null);
-  const granted = settings.gate === 'open' || (settings.gate === 'code' && !!code);
 
   const opened = useOpenedSet();
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -180,45 +175,17 @@ function Stage({ settings, onRecheck }: { settings: PublicSettings; onRecheck: (
     }
   }, []);
 
-  // 접속 코드가 바뀌었거나 틀린 경우 → 게이트로
-  const resetIntro = intro.reset;
-  const onDenied = useCallback(() => {
-    storeCode(null);
-    setCode(null);
-    setGateNotice('접속 코드가 변경되었습니다. 새 코드를 입력해 주세요.');
-    resetIntro();
-    onRecheck(); // 코드가 해제된 경우 "준비 중" 으로 전환
-  }, [resetIntro, onRecheck]);
+  const { state, retry } = usePublicWinners(onPresentation);
 
-  const { state, retry } = usePublicWinners(settings.gate === 'code' ? code : null, granted, onPresentation, onDenied);
-
-  const enter = useCallback(
-    async (input: string | null): Promise<string | null> => {
-      // 클릭 제스처 안에서 오디오 잠금 해제 + (업로드 음악이면) 재생 준비
-      sound.unlock();
-      sound.prepareMusic(musicSource);
-      if (settings.gate === 'code' && !code) {
-        try {
-          const ok = await provider.verifyAccessCode(input ?? '');
-          if (!ok) {
-            sound.cancelPreparedMusic();
-            return '접속 코드가 올바르지 않습니다.';
-          }
-        } catch (e) {
-          sound.cancelPreparedMusic();
-          return e instanceof Error ? e.message : '확인 중 오류가 발생했습니다.';
-        }
-        storeCode(input);
-        setCode(input);
-        setGateNotice(null);
-      }
-      sound.startMusic(musicSource); // 2초 페이드인, 이후 갤러리·상세에서도 계속
-      intro.start();
-      if (mode === 'cinematic' && !reduced) sound.introDuckMusic(true); // 드럼롤·플래시가 잘 들리도록
-      return null;
-    },
-    [settings.gate, code, intro, musicSource, mode, reduced],
-  );
+  // 입장하기: 누구나 바로 입장 (접속 코드 없음)
+  const enter = useCallback(() => {
+    // 클릭 제스처 안에서 오디오 잠금 해제 후 바로 재생 (자동재생 차단 회피, 모바일 Safari 포함)
+    sound.unlock();
+    sound.prepareMusic(musicSource);
+    sound.startMusic(musicSource); // 2초 페이드인, 이후 갤러리·상세에서도 계속
+    intro.start();
+    if (mode === 'cinematic' && !reduced) sound.introDuckMusic(true); // 드럼롤·플래시가 잘 들리도록
+  }, [intro, musicSource, mode, reduced]);
 
   // 처음 화면(게이트)으로 — 음악은 끊지 않음
   const backToGate = useCallback(() => {
@@ -246,7 +213,7 @@ function Stage({ settings, onRecheck }: { settings: PublicSettings; onRecheck: (
   }, []);
 
   let status = null;
-  if (!granted || state.status === 'loading') status = <GallerySkeleton />;
+  if (state.status === 'loading') status = <GallerySkeleton />;
   else if (state.status === 'error') status = <ErrorState message={state.message} onRetry={retry} />;
   else if (winners && winners.length === 0) status = <EmptyState />;
 
@@ -254,13 +221,7 @@ function Stage({ settings, onRecheck }: { settings: PublicSettings; onRecheck: (
   const gate = (
     <>
       <GateTitle title={settings.event_title} subtitle={settings.event_subtitle} year={settings.year} />
-      <AccessGate
-        mode={settings.gate}
-        hasCode={!!code}
-        onEnter={enter}
-        notice={gateNotice}
-        onRecheck={onRecheck}
-      />
+      <EnterButton onEnter={enter} />
     </>
   );
 

@@ -32,14 +32,18 @@ select pg_temp.expect_error('insert into public.presentation_events(kind) values
 
 -- 공개 설정: 해시 없음
 do $$ declare j jsonb := public.get_public_settings(); begin
-  if j ? 'access_code_hash' then raise exception 'hash leaked'; end if;
-  if (j ->> 'access_code_set')::boolean then raise exception 'code should be unset'; end if;
+  if j ? 'access_code_hash' or j ? 'access_code_set' then raise exception 'access code info leaked'; end if;
 end $$;
 
 -- 코드 미설정 → 준비 중
-select pg_temp.expect_error('select public.get_public_awards(''whatever'')', 'access_not_ready');
+-- 접속 코드 없이 바로 공개 데이터 (마이그레이션 9)
+do $$ begin
+  if jsonb_array_length(public.get_public_awards()) <> 5 then raise exception 'anon should get 5 winners without code'; end if;
+end $$;
+-- 접속 코드 함수는 삭제됨
+select pg_temp.expect_error('select public.verify_access_code(''x'')', 'does not exist');
 -- 관리자 함수 실행 불가
-select pg_temp.expect_error('select public.set_access_code(''abcdef'')', 'permission denied');
+select pg_temp.expect_error('select public.set_access_code(''abcdef'')', 'does not exist');
 select pg_temp.expect_error('select public.restore_awards(''{}''::jsonb)', 'permission denied');
 select pg_temp.expect_error('select * from public.reveal_next()', 'permission denied');
 select pg_temp.expect_error('select public.has_role(''11111111-1111-4111-8111-111111111111'', ''admin'')', 'permission denied');
@@ -57,7 +61,6 @@ do $$ begin
 end $$;
 select pg_temp.expect_error('insert into public.user_roles values (''22222222-2222-4222-8222-222222222222'', ''admin'')', 'permission denied');
 select pg_temp.expect_error('insert into public.winners(name) values (''x'')', 'row-level security');
-select pg_temp.expect_error('select public.set_access_code(''abcdef'')', '관리자만');
 select pg_temp.expect_error('select public.restore_awards(''{"winners":[],"settings":{}}''::jsonb)', '관리자만');
 select pg_temp.expect_error('select * from public.reveal_next()', '관리자만');
 select pg_temp.expect_error('insert into storage.objects(bucket_id, name) values (''winner-photos'', ''x.webp'')', 'row-level security');
@@ -73,25 +76,21 @@ end $$;
 -- 해시 컬럼 직접 읽기/쓰기 불가
 select pg_temp.expect_error('select access_code_hash from public.site_settings', 'permission denied');
 select pg_temp.expect_error('update public.site_settings set access_code_hash = ''x''', 'permission denied');
-select pg_temp.expect_error('select public.set_access_code(''abc'')', '6~64');
-select public.set_access_code('award2026');
 update public.site_settings set accent_color = '#cfd8e6' where id = 1;
 insert into storage.objects(bucket_id, name) values ('winner-photos', 'a.webp');
 reset role;
 
--- ---------- anon: 코드 확인 + 마스킹 ----------
+-- ---------- anon: 접속 코드 없이 공개 + 마스킹 ----------
 set role anon;
 select set_config('request.jwt.claim.sub', '', false);
+-- 예전 클라이언트처럼 code 를 보내도 무시하고 같은 결과
 do $$ begin
-  if public.verify_access_code('wrong-code') then raise exception 'wrong code accepted'; end if;
-  if not public.verify_access_code('award2026') then raise exception 'right code rejected'; end if;
-  if not (public.get_public_settings() ->> 'access_code_set')::boolean then raise exception 'code should be set'; end if;
+  if public.get_public_awards('anything') <> public.get_public_awards() then raise exception 'code arg should be ignored'; end if;
+  if public.get_public_awards(null) <> public.get_public_awards() then raise exception 'null code should work'; end if;
 end $$;
-select pg_temp.expect_error('select public.get_public_awards(''wrong-code'')', 'invalid_access_code');
-select pg_temp.expect_error('select public.get_public_awards(null)', 'invalid_access_code');
 do $$
 declare
-  j jsonb := public.get_public_awards('award2026');
+  j jsonb := public.get_public_awards();
   hidden jsonb;
 begin
   if jsonb_array_length(j) <> 5 then raise exception 'expected 5, got %', jsonb_array_length(j); end if;
@@ -162,9 +161,11 @@ end $$;
 select pg_temp.expect_error($q$insert into public.winners(name) select 'x' || g from generate_series(1, 9) g$q$, '최대 10명');
 reset role;
 
--- 접속 코드는 복원 후에도 유지
+-- 사용하지 않는 access_code_hash 컬럼은 남아 있음
 do $$ begin
-  if not public.verify_access_code('award2026') then raise exception 'code lost after restore'; end if;
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'site_settings' and column_name = 'access_code_hash') then
+    raise exception 'access_code_hash column should be kept';
+  end if;
 end $$;
 
 select 'ALL SECURITY TESTS PASSED' as result;
@@ -176,7 +177,7 @@ do $$ declare j jsonb := public.get_public_settings(); begin
   if j ->> 'music_source' <> 'default' then raise exception 'music_source default wrong'; end if;
   if (j ->> 'music_volume')::numeric <> 0.5 then raise exception 'music_volume default wrong'; end if;
   if jsonb_typeof(j -> 'music_volume') <> 'number' then raise exception 'music_volume should be number'; end if;
-  if j ? 'access_code_hash' then raise exception 'hash leaked'; end if;
+  if j ? 'access_code_hash' or j ? 'access_code_set' then raise exception 'access code info leaked'; end if;
 end $$;
 select pg_temp.expect_error('update public.site_settings set intro_mode = ''cinematic''', 'permission denied');
 reset role;
@@ -199,3 +200,32 @@ do $$ begin
 end $$;
 reset role;
 select 'MIGRATION 8 TESTS PASSED' as result;
+
+-- ---------- 9) 접속 코드 제거 후: 발표 모드 공개가 anon 응답에 반영 ----------
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
+select public.restore_awards($j${
+  "settings": {"event_title":"t","event_subtitle":"s","intro_line":"l","accent_color":"#d9b45a","intro_length":"short","year":2026},
+  "winners": [
+    {"name":"공개됨","dept":"A","topic":"T1","as_is":"a","actions":"b","to_be":"c","reflection":"d","photo_url":"https://x.supabase.co/p1.webp","is_revealed":true},
+    {"name":"비공개","dept":"B","topic":"SECRET-TOPIC","as_is":"SECRET","actions":"b","to_be":"c","reflection":"d","photo_url":"https://x.supabase.co/secret.webp","is_revealed":false}
+  ]}$j$::jsonb);
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare j jsonb := public.get_public_awards(); begin
+  if j::text like '%SECRET%' or j::text like '%secret.webp%' then raise exception 'unrevealed content leaked without code'; end if;
+  if (j -> 1 ->> 'name') <> '비공개' or (j -> 1 ->> 'dept') <> 'B' then raise exception 'hidden winner should keep name/dept'; end if;
+  if (j -> 0 ->> 'topic') <> 'T1' then raise exception 'revealed winner should include topic'; end if;
+end $$;
+reset role;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
+select * from public.reveal_next();
+reset role;
+set role anon;
+do $$ declare j jsonb := public.get_public_awards(); begin
+  if (j -> 1 ->> 'topic') <> 'SECRET-TOPIC' then raise exception 'reveal_next should expose content to anon'; end if;
+end $$;
+reset role;
+select 'MIGRATION 9 TESTS PASSED' as result;

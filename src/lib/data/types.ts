@@ -67,21 +67,11 @@ export interface SiteSettings {
   music_volume: number;
 }
 
-/**
- * 공개 사이트 입구 상태
- * - open: 게이트 없음(데모 모드)
- * - code: 접속 코드 필요
- * - not_ready: 관리자가 아직 접속 코드를 정하지 않음 → "준비 중"
- */
-export type GateMode = 'open' | 'code' | 'not_ready';
+/** 공개 화면에 내려가는 설정 (접속 코드 기능은 제거됨) */
+export type PublicSettings = SiteSettings;
 
-export interface PublicSettings extends SiteSettings {
-  gate: GateMode;
-}
-
-export interface AdminSettings extends SiteSettings {
-  access_code_set: boolean;
-}
+/** 관리자 화면 설정 */
+export type AdminSettings = SiteSettings;
 
 export type PresentationEvent =
   | { kind: 'reveal'; winner_id: string }
@@ -94,13 +84,6 @@ export interface AwardsBackup {
   exported_at: string;
   settings: SiteSettings;
   winners: Array<Omit<Winner, 'created_at'> & { created_at?: string }>;
-}
-
-export class AccessDeniedError extends Error {
-  constructor(message = '접속 코드가 올바르지 않습니다.') {
-    super(message);
-    this.name = 'AccessDeniedError';
-  }
 }
 
 export const MAX_WINNERS = 10;

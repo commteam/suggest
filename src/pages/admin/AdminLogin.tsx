@@ -45,8 +45,8 @@ export default function AdminLogin() {
         <div className="mb-6 flex justify-center">
           <DemoBadge inline />
         </div>
-        <p className="eyebrow text-center text-base">Suggestion Awards</p>
-        <h1 className="mt-1 text-center font-serif text-2xl font-extrabold">관리자 로그인</h1>
+        <p className="eyebrow text-center text-xs">Suggestion Awards</p>
+        <h1 className="mt-1 text-center text-2xl font-extrabold">관리자 로그인</h1>
         {inTeams && (
           <div role="note" className="mt-6 rounded-xl border border-sky/50 bg-[#081a44]/70 p-4 text-sm leading-relaxed text-[#c3cfe3]">
             <p className="flex items-center gap-1.5 font-bold text-ink">

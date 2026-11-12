@@ -25,7 +25,7 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
       <WallBackdrop />
       <header className="relative z-10 px-6 pt-16 text-center sm:pt-14">
         <motion.p
-          className="eyebrow text-sm sm:text-base"
+          className="eyebrow text-[0.7rem] sm:text-sm"
           initial={{ opacity: 0, y: 10 }}
           animate={show ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.8 }}
@@ -34,7 +34,7 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
         </motion.p>
         <motion.h1
           id="gallery-title"
-          className="mt-2 font-serif text-3xl font-extrabold tracking-[0.06em] sm:text-5xl"
+          className="mt-3 text-[2rem] leading-tight font-extrabold tracking-[0.04em] sm:text-5xl"
           initial={{ opacity: 0, y: 14 }}
           animate={show ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.9, delay: 0.1 }}

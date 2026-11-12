@@ -16,9 +16,8 @@
   --color-panel: var(--c-panel);
   --color-line: var(--c-line);
   --color-danger: var(--c-danger);
-  --font-serif: 'Nanum Myeongjo', 'Noto Serif KR', serif;
-  --font-display: 'Cormorant Garamond', 'Nanum Myeongjo', serif;
-  --font-sans: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  /* 글꼴은 tokens.css 의 --font-base 한 곳에서만 정의 (Tailwind font-sans 가 참조) */
+  --font-sans: var(--font-base);
 }
 
 @layer base {
@@ -30,8 +29,11 @@
   html {
     background: var(--c-bg);
     color: var(--c-ink);
-    font-family: var(--font-sans);
+    font-family: var(--font-base);
+    line-height: 1.65; /* 한글 본문 가독성 */
+    letter-spacing: -0.003em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     word-break: keep-all;
     overflow-wrap: anywhere;
   }
@@ -50,9 +52,6 @@
 }
 
 @layer components {
-  .font-display {
-    font-variant-numeric: lining-nums;
-  }
   @keyframes sheen {
     0%, 55% { transform: translateX(-120%) skewX(-18deg); }
     100% { transform: translateX(220%) skewX(-18deg); }
@@ -92,9 +91,9 @@
     gap: 0.5rem;
     padding: 0.85rem 2.1rem;
     border-radius: 999px;
-    font-family: var(--font-serif);
+    font-family: var(--font-base);
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     color: #1a1406;
     background: var(--g-metal);
     box-shadow:
@@ -140,11 +139,14 @@
       0 18px 40px rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(4px);
   }
+  /* 영문 장식 문구: 같은 고딕의 가는 굵기 + 넓은 자간 */
   .eyebrow {
-    font-variant-numeric: lining-nums;
-    font-family: var(--font-display);
-    font-style: italic;
-    letter-spacing: 0.12em;
+    font-family: var(--font-base);
+    font-style: normal;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    font-variant-numeric: tabular-nums;
     color: var(--c-accent-light);
   }
 }

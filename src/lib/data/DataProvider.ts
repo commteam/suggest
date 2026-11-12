@@ -27,9 +27,8 @@ export interface DataProvider {
 
   // ---- 공개 ----
   getPublicSettings(): Promise<PublicSettings>;
-  /** 접속 코드가 틀리면 AccessDeniedError */
-  getPublicWinners(accessCode: string | null): Promise<PublicWinner[]>;
-  verifyAccessCode(code: string): Promise<boolean>;
+  /** 누구나 조회. 공개 전 인물은 이름·소속·순서만 */
+  getPublicWinners(): Promise<PublicWinner[]>;
   subscribePresentation(cb: (e: PresentationEvent) => void): () => void;
 
   // ---- 인증 ----
@@ -47,7 +46,6 @@ export interface DataProvider {
   uploadAudio(file: File, kind: AudioKind): Promise<string>;
   getAdminSettings(): Promise<AdminSettings>;
   updateSettings(patch: Partial<SiteSettings>): Promise<AdminSettings>;
-  setAccessCode(code: string): Promise<void>;
   setAllRevealed(revealed: boolean): Promise<void>;
   /** 다음 공개 전 인물을 공개하고 그 사람을 반환. 남은 사람이 없으면 null */
   revealNext(): Promise<Winner | null>;
