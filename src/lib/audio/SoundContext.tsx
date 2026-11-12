@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { SoundPrefContext } from './soundPref';
 import { sound } from './SoundEngine';
+import { safeLocalStorage } from '../safeStorage';
 
 const KEY = 'awards.sound';
 
 function readPref(): boolean | null {
   try {
-    const v = localStorage.getItem(KEY);
+    const v = safeLocalStorage().getItem(KEY);
     return v === null ? null : v === '1';
   } catch {
     return null;
@@ -27,7 +28,7 @@ export function SoundProvider({ defaultOn, children }: { defaultOn: boolean; chi
     if (next) sound.unlock();
     setPref(next);
     try {
-      localStorage.setItem(KEY, next ? '1' : '0');
+      safeLocalStorage().setItem(KEY, next ? '1' : '0');
     } catch {
       /* ignore */
     }

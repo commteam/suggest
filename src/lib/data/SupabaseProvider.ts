@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { AdminSession, AudioKind, DataProvider } from './DataProvider';
 import { buildBackup, validateBackup } from './backup';
+import { safeLocalStorage } from '../safeStorage';
 import {
   AccessDeniedError,
   type AdminSettings,
@@ -65,7 +66,10 @@ export class SupabaseProvider implements DataProvider {
   private sb: SupabaseClient;
 
   constructor(url: string, anonKey: string) {
-    this.sb = createClient(url, anonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+    // iframe(Teams 탭) 안에서 localStorage 가 막혀도 동작하도록 안전한 저장소 사용
+    this.sb = createClient(url, anonKey, {
+      auth: { persistSession: true, autoRefreshToken: true, storage: safeLocalStorage() },
+    });
   }
 
   private async rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {

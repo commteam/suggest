@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "screenshots": "node scripts/screenshots.mjs",
     "e2e": "node scripts/e2e.mjs",
+    "e2e:teams": "node scripts/e2e-teams.mjs",
+    "teams:package": "node scripts/teams-package.mjs",
     "test:db": "./scripts/test-db.sh"
   },
   "dependencies": {
@@ -20,6 +22,7 @@
     "@fontsource/cormorant-garamond": "^5.3.0",
     "@fontsource/gowun-dodum": "^5.3.0",
     "@fontsource/nanum-myeongjo": "^5.3.0",
+    "@microsoft/teams-js": "^2.59.0",
     "@radix-ui/react-alert-dialog": "^1.2.1",
     "@radix-ui/react-dialog": "^1.3.1",
     "@radix-ui/react-label": "^2.1.17",

@@ -71,6 +71,13 @@
   - ⚠️ 업로드하는 음원은 **사용 허가(라이선스)를 받은 곡만** 쓰세요. 기본 음악은 사이트가 직접 합성하므로 저작권 걱정이 없습니다.
 - [ ] **9. 소리 확인**: 배포 주소에서 PC와 휴대폰(특히 iPhone Safari)으로 "입장하기"를 누르고 음악이 2초에 걸쳐 커지는지, 상세 화면에서 줄어드는지, 탭을 바꿨다 돌아오면 이어지는지 들어 봅니다.
 - [ ] **10. 리허설**: 발표 모드에서 **전체 비공개**를 한 다음, 다른 기기에서 공개 사이트를 열어 둡니다. **다음 사람 공개**를 누르면 그 기기에서 스포트라이트 → 플래시 → 사진 → 팡파르 순서로 연출되는지 확인합니다.
+- [ ] **11. (선택) Microsoft Teams 개인 탭으로 추가** (아래 「Microsoft Teams 개인 탭」 참고)
+  1. 다음 명령으로 `teams-app/build/suggestion-awards-teams.zip`을 만듭니다.
+     ```bash
+     npm run teams:package -- --host 배포주소.vercel.app
+     ```
+  2. Teams 관리 센터 → Teams 앱 → 앱 관리 → **업로드**(조직 배포)를 하거나, Teams 클라이언트 → 앱 → 앱 관리 → **앱 업로드**를 합니다.
+  3. "발표"·"관리" 두 개인 탭이 생깁니다. 관리 탭에서 로그인이 유지되지 않으면 탭 안의 **브라우저에서 열기**를 쓰세요.
 
 ---
 
@@ -93,6 +100,8 @@ http://localhost:5173 에서 공개 화면을, http://localhost:5173/admin 에�
 | `npm run lint` | ESLint |
 | `npm test` | Vitest 단위 테스트(오프닝 타임라인, 텍스트 파서, 복원 검증, 공개 전 마스킹 등) |
 | `npm run e2e` | 데모 모드 전체 흐름 Playwright 검사(먼저 `npx vite preview --port 4173` 실행). 입장 → 갤러리 → 상세 → 관리자 수정 → 반영 → 발표 공개 → 처음 화면으로 → 시네마틱 건너뛰기 → 음악 재생·덕킹·토글·탭 숨김을 확인합니다 |
+| `npm run e2e:teams` | Teams 개인 탭 검증: 가짜 Teams 호스트 iframe에서 SDK 초기화, 다른 사이트 삽입 차단, `/admin?source=teams`, 로그인 유지, 파일 선택, 저장소 차단 대응을 확인합니다(4173 데모 + 4174 Supabase 빌드 preview 필요) |
+| `npm run teams:package -- --host 주소` | Teams 앱 패키지 zip 생성 |
 | `npm run test:db` | 로컬 PostgreSQL에서 마이그레이션·RLS 보안 테스트(`PGUSER=postgres`) |
 
 ### 데모 모드 vs Supabase 모드
@@ -130,6 +139,25 @@ http://localhost:5173 에서 공개 화면을, http://localhost:5173/admin 에�
 3. Deploys → Trigger deploy를 누릅니다.
 
 SPA 라우팅(`/admin` 새로고침)은 `vercel.json`과 `netlify.toml`의 rewrite 설정으로 처리됩니다.
+보안 헤더(CSP 등)도 두 파일에 같은 내용으로 들어 있으며, `npm run preview`도 `vercel.json`의 헤더를 그대로 사용합니다.
+
+## Microsoft Teams 개인 탭
+
+이 사이트를 Teams 안의 개인 탭(personal tab)으로 열 수 있습니다.
+
+| 탭 | 주소 | 동작 |
+|---|---|---|
+| 발표 | `https://배포주소/?source=teams` | 공개 화면 그대로(입장하기 → 갤러리, 음악) |
+| 관리 | `https://배포주소/admin?source=teams` | 로그인 화면으로 바로 이동(이미 로그인했으면 관리 화면) |
+
+- **iframe 삽입 허용 범위**: `vercel.json`과 `netlify.toml`의 CSP `frame-ancestors`가 `'self'`와 Teams/Microsoft 365 도메인만 허용합니다. 다른 사이트가 iframe으로 넣으면 브라우저가 막습니다. `X-Frame-Options`는 이 설정과 충돌하므로 제거했습니다.
+- **Teams SDK**: Teams 안에서 열렸을 때만 `@microsoft/teams-js`를 내려받아 `app.initialize()`와 `app.notifySuccess()`를 호출합니다. 일반 브라우저에서는 SDK를 내려받지 않습니다. 초기화가 실패하거나 6초 안에 응답이 없어도 화면은 그대로 동작합니다.
+- **로그인 유지**: Supabase 세션은 iframe 안의 localStorage에 저장됩니다. Chromium 계열(새 Teams, Edge WebView2, Teams 웹)에서는 탭을 다시 열어도 로그인이 유지되는 것을 확인했습니다.
+  - 회사 보안 정책이나 일부 브라우저(예: Safari의 서드파티 저장소 차단)에서는 유지되지 않을 수 있습니다.
+  - 그래서 Teams에서 열면 로그인 화면에 안내와 **브라우저에서 열기** 버튼이 보입니다.
+  - 저장소가 완전히 막힌 환경에서도 앱이 멈추지 않고 메모리에 로그인하며, "로그인 정보를 저장할 수 없습니다" 경고를 보여 줍니다.
+- **사진 업로드**: 업로드 영역마다 눈에 잘 띄는 **파일 선택** 버튼이 있습니다(드래그앤드롭은 보조). 버튼 위에 실제 파일 입력을 겹쳐 두어서, 사용자의 클릭이 그대로 네이티브 파일 선택창을 엽니다. Teams 웹·데스크톱에서도 동작합니다.
+- **Supabase 커스텀 도메인**을 쓰면 CSP의 `connect-src`, `img-src`, `media-src`에 그 도메인을 추가해야 합니다(기본 `*.supabase.co`만 허용).
 
 ## 보안 설계
 
@@ -166,7 +194,8 @@ supabase/
   migrations/     스키마·RLS·함수 (번호 순서대로 실행)
   seed.sql        예시 데이터
   tests/          로컬 Postgres 보안 테스트
-scripts/          e2e.mjs, e2e-supabase.mjs, screenshots.mjs, test-db.sh
+scripts/          e2e.mjs, e2e-supabase.mjs, e2e-teams.mjs, teams-package.mjs, screenshots.mjs, test-db.sh
+teams-app/        Teams 앱 매니페스트 템플릿과 아이콘
 ```
 
 ## 사용 팁

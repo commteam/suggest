@@ -1,0 +1,43 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "{{APP_ID}}",
+  "developer": {
+    "name": "{{DEVELOPER_NAME}}",
+    "websiteUrl": "https://{{HOST}}",
+    "privacyUrl": "https://{{HOST}}",
+    "termsOfUseUrl": "https://{{HOST}}"
+  },
+  "name": {
+    "short": "제안 우수자 발표",
+    "full": "2026 SUGGESTION AWARDS · 사내 제안제도 수행 우수자 발표"
+  },
+  "description": {
+    "short": "사내 제안제도 수행 우수자 발표",
+    "full": "영화제 시상식처럼 연출한 사내 제안제도 수행 우수자 발표 사이트입니다. '발표' 탭에서 명예의 전당을 보고, '관리' 탭에서 관리자가 사진과 내용을 수정합니다."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#060B17",
+  "staticTabs": [
+    {
+      "entityId": "awards",
+      "name": "발표",
+      "contentUrl": "https://{{HOST}}/?source=teams",
+      "websiteUrl": "https://{{HOST}}/",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "admin",
+      "name": "관리",
+      "contentUrl": "https://{{HOST}}/admin?source=teams",
+      "websiteUrl": "https://{{HOST}}/admin",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": [],
+  "validDomains": ["{{HOST}}"]
+}
