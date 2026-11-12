@@ -128,6 +128,29 @@ try {
     console.log('  ✓ Teams 호스트: initialize + notifySuccess, 공개 화면·음악 정상');
   }
 
+  // ---------- 2-1) Teams 안에서 자동 재생이 차단된 경우: 안내 → 탭 안 아무 곳이나 한 번 누르면 음악 시작 ----------
+  {
+    const blocked = await chromium.launch({ args: ['--autoplay-policy=user-gesture-required'] });
+    const ctx = await blocked.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await hostPage(ctx, 'https://teams.microsoft.com', `${APP}/?source=teams`);
+    watchFrameErrors(page, 'teams-autoplay-blocked');
+    await page.goto('https://teams.microsoft.com/_e2e/blocked');
+    // Playwright 의 페이지 내 확인은 '사용자 조작'으로 취급되므로, 판별이 끝날 때까지 실행 없이 대기
+    await page.waitForTimeout(2600);
+    const fl = page.frameLocator('#app');
+    await fl.getByText('화면을 한 번 누르면 음악이 시작됩니다').waitFor({ timeout: 4000 });
+    let a = await appFrame(page).evaluate(() => window.__awardsAudio);
+    assert(a.autostart === 'blocked' && !a.musicPlaying, `Teams 안 차단을 조용히 감지 (${JSON.stringify(a)})`);
+    await page.mouse.click(60, 700); // 탭(iframe) 안의 빈 곳
+    await appFrame(page).waitForFunction(() => window.__awardsAudio?.musicPlaying, null, { timeout: 3000 });
+    await fl.getByText('화면을 한 번 누르면 음악이 시작됩니다').waitFor({ state: 'hidden', timeout: 3000 });
+    a = await appFrame(page).evaluate(() => window.__awardsAudio);
+    assert(a.contextState === 'running', `Teams 안에서 한 번 누르면 시작 (${JSON.stringify(a)})`);
+    await ctx.close();
+    await blocked.close();
+    console.log('  ✓ Teams 안 자동 재생 차단: 안내 표시 → 한 번 누르면 음악 시작');
+  }
+
   // ---------- 3) Teams 호스트가 응답하지 않아도(타임아웃) 화면은 정상 ----------
   {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
