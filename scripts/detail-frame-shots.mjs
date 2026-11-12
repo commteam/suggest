@@ -20,6 +20,7 @@ const SIZES = [
   ['mobile-375', { width: 375, height: 812 }, true],
   ['tablet-768', { width: 768, height: 1024 }, true],
   ['desktop-1280', { width: 1280, height: 800 }, false],
+  ['desktop-1880', { width: 1880, height: 923 }, false],
 ];
 
 async function makePortrait(browser) {
@@ -70,7 +71,8 @@ const measure = (p, root) =>
     const img = scope.querySelector('img[alt$="증명사진"]');
     const frame = img?.closest('.rounded-\\[4px\\]');
     const r = (el) => (el ? Math.round(el.getBoundingClientRect().width) + '×' + Math.round(el.getBoundingClientRect().height) : null);
-    return { frame: r(frame), photo: r(img) };
+    const card = scope.querySelector('article');
+    return { frame: r(frame), photo: r(img), textCard: r(card) };
   }, root);
 
 const browser = await chromium.launch();

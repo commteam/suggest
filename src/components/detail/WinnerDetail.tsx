@@ -19,12 +19,12 @@ export function WinnerDetail({ winner, compact = false, TitleTag = 'h2' }: { win
       className={
         compact
           ? 'grid gap-8'
-          : 'grid gap-10 lg:grid-cols-[minmax(0,270px)_minmax(0,1fr)] lg:gap-12'
+          : 'grid gap-10 lg:grid-cols-[minmax(0,230px)_minmax(0,1fr)] lg:gap-12'
       }
     >
       <aside className={compact ? 'text-center' : 'self-start text-center lg:sticky lg:top-12 lg:text-left'}>
-        <div className={compact ? 'mx-auto w-[170px]' : 'mx-auto w-[180px] sm:w-[210px] lg:w-full'}>
-          <DevelopingPhoto src={winner.photo_url} alt={`${winner.name} 증명사진`} replayKey={winner.id} />
+        <div className={compact ? 'mx-auto w-[170px]' : 'mx-auto w-[180px] sm:w-[210px] lg:mx-0 lg:w-[130px]'}>
+          <DevelopingPhoto src={winner.photo_url} alt={`${winner.name} 증명사진`} replayKey={winner.id} slimOnDesktop={!compact} />
         </div>
         <motion.div key={`name-${winner.id}`} className="mt-5" {...enter(0.6)}>
           <p className="eyebrow text-xs sm:text-sm">No. {winner.display_order}</p>
