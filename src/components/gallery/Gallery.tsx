@@ -24,7 +24,7 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
   const showClickHint = !status && !!winners?.some((w) => w.is_revealed);
   return (
     <section aria-labelledby="gallery-title" className="relative isolate flex min-h-[100svh] flex-col overflow-hidden">
-      <WallBackdrop />
+      <WallBackdrop lit={show} />
       <header className="relative z-10 px-6 pt-16 text-center sm:pt-14">
         <motion.p
           className="eyebrow text-[0.7rem] sm:text-sm"
