@@ -1,0 +1,99 @@
+/** 관리자용 전체 레코드 (DB winners 테이블과 1:1) */
+export interface Winner {
+  id: string;
+  display_order: number;
+  name: string;
+  dept: string;
+  position: string | null;
+  photo_url: string | null;
+  topic: string;
+  as_is: string;
+  actions: string;
+  to_be: string;
+  reflection: string;
+  is_revealed: boolean;
+  created_at: string;
+}
+
+export type WinnerInput = Omit<Winner, 'id' | 'created_at'> & { id?: string };
+
+/** 공개 전: 이름·소속·순서만 */
+export interface HiddenWinner {
+  id: string;
+  display_order: number;
+  name: string;
+  dept: string;
+  is_revealed: false;
+}
+
+/** 공개됨: 상세 내용 포함 */
+export interface RevealedWinner {
+  id: string;
+  display_order: number;
+  name: string;
+  dept: string;
+  position: string | null;
+  photo_url: string | null;
+  topic: string;
+  as_is: string;
+  actions: string;
+  to_be: string;
+  reflection: string;
+  is_revealed: true;
+}
+
+export type PublicWinner = HiddenWinner | RevealedWinner;
+
+export type IntroLength = 'standard' | 'short';
+
+export interface SiteSettings {
+  event_title: string;
+  event_subtitle: string;
+  year: number;
+  intro_line: string;
+  intro_enabled: boolean;
+  intro_length: IntroLength;
+  sound_default: boolean;
+  accent_color: string;
+  fanfare_url: string | null;
+  bgm_url: string | null;
+}
+
+/**
+ * 공개 사이트 입구 상태
+ * - open: 게이트 없음(데모 모드)
+ * - code: 접속 코드 필요
+ * - not_ready: 관리자가 아직 접속 코드를 정하지 않음 → "준비 중"
+ */
+export type GateMode = 'open' | 'code' | 'not_ready';
+
+export interface PublicSettings extends SiteSettings {
+  gate: GateMode;
+}
+
+export interface AdminSettings extends SiteSettings {
+  access_code_set: boolean;
+}
+
+export type PresentationEvent =
+  | { kind: 'reveal'; winner_id: string }
+  | { kind: 'reveal_all' }
+  | { kind: 'hide_all' }
+  | { kind: 'refresh' };
+
+export interface AwardsBackup {
+  version: 1;
+  exported_at: string;
+  settings: SiteSettings;
+  winners: Array<Omit<Winner, 'created_at'> & { created_at?: string }>;
+}
+
+export class AccessDeniedError extends Error {
+  constructor(message = '접속 코드가 올바르지 않습니다.') {
+    super(message);
+    this.name = 'AccessDeniedError';
+  }
+}
+
+export const MAX_WINNERS = 10;
+export const RECOMMENDED_STORY_LENGTH = 400;

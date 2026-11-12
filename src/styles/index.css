@@ -1,0 +1,166 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-bg-2: var(--c-bg-2);
+  --color-velvet: var(--c-velvet);
+  --color-velvet-dark: var(--c-velvet-dark);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-accent: var(--c-accent);
+  --color-accent-light: var(--c-accent-light);
+  --color-accent-dark: var(--c-accent-dark);
+  --color-flash: var(--c-flash);
+  --color-sky: var(--c-sky);
+  --color-panel: var(--c-panel);
+  --color-line: var(--c-line);
+  --color-danger: var(--c-danger);
+  --font-serif: 'Nanum Myeongjo', 'Noto Serif KR', serif;
+  --font-display: 'Cormorant Garamond', 'Nanum Myeongjo', serif;
+  --font-sans: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  html {
+    background: var(--c-bg);
+    color: var(--c-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  body {
+    margin: 0;
+  }
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--c-accent) 45%, transparent);
+    color: var(--c-ink);
+  }
+}
+
+@layer components {
+  .font-display {
+    font-variant-numeric: lining-nums;
+  }
+  @keyframes sheen {
+    0%, 55% { transform: translateX(-120%) skewX(-18deg); }
+    100% { transform: translateX(220%) skewX(-18deg); }
+  }
+  .sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 45%;
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--c-accent-light) 35%, transparent), transparent);
+    animation: sheen 3.6s ease-in-out infinite;
+    pointer-events: none;
+  }
+  /* 금속 질감 — 액자·명패·버튼·강조에만 */
+  .metal-border {
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--metal-fill, var(--c-bg)), var(--metal-fill, var(--c-bg))) padding-box,
+      var(--g-metal) border-box;
+  }
+  .metal-text {
+    background: var(--g-metal-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .glow-accent {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--c-accent) 35%, transparent),
+      0 0 24px color-mix(in oklab, var(--c-accent) 28%, transparent);
+  }
+  .btn-metal {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 2.1rem;
+    border-radius: 999px;
+    font-family: var(--font-serif);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #1a1406;
+    background: var(--g-metal);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.25),
+      0 8px 30px color-mix(in oklab, var(--c-accent) 30%, transparent);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      filter 0.2s ease;
+  }
+  .btn-metal:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.25),
+      0 10px 40px color-mix(in oklab, var(--c-accent) 45%, transparent);
+  }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    color: var(--c-ink);
+    background: color-mix(in oklab, var(--c-bg) 55%, transparent);
+    border: 1px solid color-mix(in oklab, var(--c-muted) 35%, transparent);
+    backdrop-filter: blur(6px);
+    transition:
+      border-color 0.2s,
+      background 0.2s;
+  }
+  .btn-ghost:hover {
+    border-color: color-mix(in oklab, var(--c-accent) 70%, transparent);
+    background: color-mix(in oklab, var(--c-velvet-dark) 70%, transparent);
+  }
+  .card-blue {
+    background: linear-gradient(180deg, rgba(18, 48, 122, 0.32), rgba(8, 26, 68, 0.42));
+    border: 1px solid color-mix(in oklab, var(--c-accent) 38%, transparent);
+    box-shadow:
+      inset 0 1px 0 rgba(219, 232, 255, 0.06),
+      0 18px 40px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+  }
+  .eyebrow {
+    font-variant-numeric: lining-nums;
+    font-family: var(--font-display);
+    font-style: italic;
+    letter-spacing: 0.12em;
+    color: var(--c-accent-light);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheen::after {
+    display: none;
+  }
+}

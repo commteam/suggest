@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-*
+dist-ssr
+coverage
+*.log
+.env
+.env*.local
+.DS_Store
+.vite
+screenshots/tmp
+docs/screenshots

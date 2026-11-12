@@ -1,0 +1,50 @@
+/*
+ * 디자인 토큰 — 색은 여기서만 정의합니다.
+ * --c-accent 는 관리자 설정(포인트 컬러)으로 런타임에 교체되며,
+ * 밝은/어두운 변형은 color-mix 로 자동 파생됩니다.
+ */
+:root {
+  --c-bg: #060b17;
+  --c-bg-2: #0a1226;
+  --c-velvet: #12307a;
+  --c-velvet-dark: #081a44;
+  --c-ink: #eef2fa;
+  --c-muted: #9fb0cc;
+  --c-accent: #d9b45a;
+  --c-flash: #dbe8ff;
+  --c-sky: #5b8def;
+  --c-panel: #0d1730;
+  --c-line: #22345e;
+  --c-danger: #f2a7a0;
+
+  --c-accent-light: color-mix(in oklab, var(--c-accent), white 38%);
+  --c-accent-dark: color-mix(in oklab, var(--c-accent), black 48%);
+
+  --g-metal: linear-gradient(
+    135deg,
+    var(--c-accent-dark) 0%,
+    var(--c-accent) 22%,
+    var(--c-accent-light) 45%,
+    var(--c-accent) 62%,
+    var(--c-accent-dark) 82%,
+    var(--c-accent) 100%
+  );
+  --g-metal-text: linear-gradient(
+    180deg,
+    var(--c-accent-light) 0%,
+    var(--c-accent) 55%,
+    color-mix(in oklab, var(--c-accent), black 25%) 100%
+  );
+  --g-frame: linear-gradient(
+    145deg,
+    var(--c-accent-dark) 0%,
+    var(--c-accent-light) 18%,
+    var(--c-accent) 34%,
+    var(--c-accent-dark) 52%,
+    var(--c-accent) 70%,
+    var(--c-accent-light) 86%,
+    var(--c-accent-dark) 100%
+  );
+}
+
+/* 실버 프리셋은 accent 만 바꾸면 됩니다: --c-accent: #cfd8e6 */
