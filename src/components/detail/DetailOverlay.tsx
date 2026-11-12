@@ -53,7 +53,7 @@ export function DetailOverlay({ winners, currentId, onNavigate, onClose }: Props
           </div>
 
           {current && current.is_revealed && (
-            <div className="relative mx-auto max-w-6xl px-5 pt-20 pb-14 sm:px-8 sm:pt-24">
+            <div className="relative mx-auto max-w-6xl px-5 pt-20 pb-14 sm:px-8 sm:pt-24 lg:max-w-7xl">
               <Dialog.Title className="sr-only">
                 {current.dept} {current.name} — {current.topic}
               </Dialog.Title>

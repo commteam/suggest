@@ -2,15 +2,26 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Silhouette } from '@/components/gallery/Silhouette';
 
 /** "현상되듯" 밝은 블러에서 선명해지는 증명사진 (3:4, 금색 액자) */
-export function DevelopingPhoto({ src, alt, replayKey }: { src: string | null; alt: string; replayKey: string }) {
+export function DevelopingPhoto({
+  src,
+  alt,
+  replayKey,
+  slimOnDesktop = false,
+}: {
+  src: string | null;
+  alt: string;
+  replayKey: string;
+  /** 데스크톱(lg)에서 작은 액자로 쓸 때 테두리를 얇게 */
+  slimOnDesktop?: boolean;
+}) {
   const reduce = useReducedMotion();
   return (
     <div
-      className="rounded-[4px] p-[9px] shadow-[0_30px_60px_-10px_rgba(0,0,0,0.8),0_0_40px_color-mix(in_oklab,var(--c-accent)_25%,transparent)]"
+      className={`rounded-[4px] p-[9px] ${slimOnDesktop ? 'lg:p-[6px]' : ''} shadow-[0_30px_60px_-10px_rgba(0,0,0,0.8),0_0_40px_color-mix(in_oklab,var(--c-accent)_25%,transparent)]`}
       style={{ background: 'var(--g-frame)' }}
     >
-      <div className="rounded-[2px] p-[2px]" style={{ background: 'var(--c-accent-dark)' }}>
-        <div className="bg-[#0b1430] p-[8px] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
+      <div className={`rounded-[2px] p-[2px] ${slimOnDesktop ? 'lg:p-px' : ''}`} style={{ background: 'var(--c-accent-dark)' }}>
+        <div className={`bg-[#0b1430] p-[8px] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)] ${slimOnDesktop ? 'lg:p-[5px]' : ''}`}>
           <div className="relative aspect-[3/4] overflow-hidden bg-[#0b1530]">
             {src ? (
               <motion.img
