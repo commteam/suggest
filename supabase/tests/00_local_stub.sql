@@ -30,3 +30,9 @@ do $$ begin
     create publication supabase_realtime;
   end if;
 end $$;
+
+-- Supabase 와 같은 기본 권한: public 스키마의 새 테이블/함수/시퀀스에 anon·authenticated 전체 권한.
+-- 마이그레이션의 revoke 가 이 기본값을 제대로 덮어쓰는지 테스트하기 위함.
+alter default privileges in schema public grant all on tables to anon, authenticated;
+alter default privileges in schema public grant all on functions to anon, authenticated;
+alter default privileges in schema public grant all on sequences to anon, authenticated;

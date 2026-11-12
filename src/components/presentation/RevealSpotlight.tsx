@@ -21,6 +21,7 @@ export function RevealSpotlight({ targetId }: { targetId: string | null }) {
   const cx = rect ? rect.left + rect.width / 2 : 0;
   const cy = rect ? rect.top + rect.height / 2 : 0;
   const r = rect ? Math.max(rect.width, rect.height) * 0.75 : 0;
+  const coneH = rect ? rect.bottom + 24 : 0;
 
   return (
     <AnimatePresence>
@@ -41,9 +42,10 @@ export function RevealSpotlight({ targetId }: { targetId: string | null }) {
             style={{
               left: cx - r,
               width: r * 2,
-              height: cy,
-              background: 'linear-gradient(to bottom, rgba(219,232,255,0.0), rgba(219,232,255,0.18))',
-              clipPath: 'polygon(45% 0, 55% 0, 100% 100%, 0 100%)',
+              height: coneH,
+              background: 'linear-gradient(to bottom, rgba(219,232,255,0.04), rgba(219,232,255,0.16) 60%, rgba(219,232,255,0) 100%)',
+              clipPath: 'polygon(46% 0, 54% 0, 92% 100%, 8% 100%)',
+              filter: 'blur(6px)',
             }}
           />
         </motion.div>

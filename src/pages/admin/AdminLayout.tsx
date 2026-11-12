@@ -29,7 +29,7 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-[100svh] bg-[#070d1d]">
-      <header className="sticky top-0 z-30 border-b border-line bg-[#060b17]/92 backdrop-blur">
+      <header className="z-30 border-b border-line bg-[#060b17]/92 backdrop-blur sm:sticky sm:top-0">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <span className="font-display text-xl text-accent-light italic">Awards</span>

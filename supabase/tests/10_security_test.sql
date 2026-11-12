@@ -42,6 +42,10 @@ select pg_temp.expect_error('select public.get_public_awards(''whatever'')', 'ac
 select pg_temp.expect_error('select public.set_access_code(''abcdef'')', 'permission denied');
 select pg_temp.expect_error('select public.restore_awards(''{}''::jsonb)', 'permission denied');
 select pg_temp.expect_error('select * from public.reveal_next()', 'permission denied');
+select pg_temp.expect_error('select public.has_role(''11111111-1111-4111-8111-111111111111'', ''admin'')', 'permission denied');
+select pg_temp.expect_error('select public.reorder_winners(array[]::uuid[])', 'permission denied');
+select pg_temp.expect_error('select public.set_all_revealed(true)', 'permission denied');
+select pg_temp.expect_error('update public.winners set is_revealed = true', 'permission denied');
 reset role;
 
 -- ---------- 일반 로그인 사용자 (관리자 아님) ----------

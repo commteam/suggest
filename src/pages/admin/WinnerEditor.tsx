@@ -250,7 +250,7 @@ export default function WinnerEditor() {
           </Card>
         </div>
 
-        <aside className={cn('lg:sticky lg:top-32 lg:self-start', tab !== 'preview' && 'hidden lg:block')} aria-label="공개 화면 미리보기">
+        <aside className={cn('lg:sticky lg:top-28 lg:self-start', tab !== 'preview' && 'hidden lg:block')} aria-label="공개 화면 미리보기">
           <div className="overflow-hidden rounded-xl border border-accent/40 bg-bg">
             <p className="border-b border-line px-4 py-2 text-xs font-bold tracking-wider text-muted">공개 화면 미리보기 (실시간)</p>
             <div className="max-h-[calc(100svh-12rem)] overflow-y-auto p-5 sm:p-7">

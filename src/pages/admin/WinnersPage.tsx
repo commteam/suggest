@@ -32,20 +32,20 @@ function Row({ w, index, onDelete }: { w: Winner; index: number; onDelete: (w: W
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'flex items-center gap-3 rounded-xl border border-line bg-[#0b1530] p-3 sm:gap-4',
+        'flex items-center gap-2 rounded-xl border border-line bg-[#0b1530] p-2.5 sm:gap-4 sm:p-3',
         isDragging && 'relative z-10 border-accent shadow-[0_10px_30px_rgba(0,0,0,0.6)]',
       )}
     >
       <button
         type="button"
-        className="flex h-10 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted hover:bg-[#12204a] hover:text-ink active:cursor-grabbing"
+        className="flex h-10 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted hover:bg-[#12204a] hover:text-ink active:cursor-grabbing"
         aria-label={`${w.name} 순서 변경 (스페이스로 잡고 화살표로 이동)`}
         {...attributes}
         {...listeners}
       >
         <GripVertical className="h-5 w-5" aria-hidden />
       </button>
-      <span className="w-6 shrink-0 text-center font-serif text-lg font-bold text-accent-light">{index + 1}</span>
+      <span className="w-5 shrink-0 text-center font-serif text-lg font-bold text-accent-light sm:w-6">{index + 1}</span>
       <div className="w-11 shrink-0 overflow-hidden rounded border border-accent/40 sm:w-12">
         <div className="aspect-[3/4]">
           {w.photo_url ? <img src={w.photo_url} alt="" className="h-full w-full object-cover" /> : <Silhouette />}
@@ -69,13 +69,13 @@ function Row({ w, index, onDelete }: { w: Winner; index: number; onDelete: (w: W
         {w.is_revealed ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeOff className="h-3.5 w-3.5" aria-hidden />}
         {w.is_revealed ? '공개' : '공개 전'}
       </span>
-      <div className="flex shrink-0 gap-1">
-        <Button asChild size="icon" variant="ghost">
+      <div className="flex shrink-0 gap-0.5 sm:gap-1">
+        <Button asChild size="icon" variant="ghost" className="h-8 w-8 sm:h-9 sm:w-9">
           <Link to={`/admin/winners/${w.id}`} aria-label={`${w.name} 수정`}>
             <Pencil />
           </Link>
         </Button>
-        <Button size="icon" variant="ghost" onClick={() => onDelete(w)} aria-label={`${w.name} 삭제`}>
+        <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => onDelete(w)} aria-label={`${w.name} 삭제`}>
           <Trash2 />
         </Button>
       </div>
@@ -128,7 +128,7 @@ export default function WinnersPage() {
   const full = (winners?.length ?? 0) >= MAX_WINNERS;
 
   return (
-    <Card>
+    <Card className="p-4">
       <CardTitle
         desc={`최대 ${MAX_WINNERS}명. 손잡이를 끌어 노출 순서를 바꿀 수 있습니다.`}
         action={
