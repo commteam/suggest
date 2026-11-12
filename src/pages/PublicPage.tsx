@@ -7,6 +7,7 @@ import { DetailOverlay } from '@/components/detail/DetailOverlay';
 import { Gallery, GallerySkeleton } from '@/components/gallery/Gallery';
 import { Confetti } from '@/components/intro/Confetti';
 import { EnterButton } from '@/components/intro/EnterButton';
+import { MusicStartHint } from '@/components/intro/MusicStartHint';
 import { GateTitle, Intro } from '@/components/intro/Intro';
 import { INSTANT_CONFETTI_SCALE, REVEAL_SEQUENCE } from '@/components/intro/introConfig';
 import { BackToGateButton, SkipButton, SoundToggle } from '@/components/intro/IntroControls';
@@ -14,6 +15,8 @@ import { RevealSpotlight } from '@/components/presentation/RevealSpotlight';
 import { useAccentColor } from '@/hooks/useAccentColor';
 import { usePublicSettings, usePublicWinners } from '@/hooks/useAwards';
 import { useIntroTimeline } from '@/hooks/useIntroTimeline';
+import { useMusicAutostart } from '@/hooks/useMusicAutostart';
+import { useSoundPref } from '@/lib/audio/soundPref';
 import { SoundProvider } from '@/lib/audio/SoundContext';
 import type { MusicSource } from '@/lib/audio/music/MusicPlayer';
 import { sound } from '@/lib/audio/SoundEngine';
@@ -72,6 +75,10 @@ function Stage({ settings }: { settings: PublicSettings }) {
   useEffect(() => {
     sound.setMusicVolume(settings.music_volume);
   }, [settings.music_volume]);
+  // 첫 진입: 자동 재생 시도 → 차단되면 화면 어디서든 첫 조작에서 시작
+  const { enabled: soundOn } = useSoundPref();
+  const { needsGesture } = useMusicAutostart(soundOn, musicSource);
+
   // 관리자가 음악을 바꾸면 재생 중인 곡도 교체
   useEffect(() => {
     if (sound.musicPlaying) sound.startMusic(musicSource);
@@ -250,6 +257,7 @@ function Stage({ settings }: { settings: PublicSettings }) {
       <Confetti burstKey={confetti.key} scale={confetti.scale} originX={confetti.x} palette={confetti.palette} sides={confetti.sides} />
       <CameraFlash flashKey={flash.key} intensity={flash.intensity} full={flash.full} />
       <SoundToggle />
+      <MusicStartHint show={needsGesture} />
     </main>
   );
 }

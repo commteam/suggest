@@ -119,9 +119,133 @@ function makeWav() {
 }
 const wavFile = makeWav();
 
+/**
+ * 자동 재생이 막힌 브라우저 흉내: 실제 사용자 조작(isTrusted) 전까지 미디어 play() 가 NotAllowedError.
+ * (Playwright 의 Chromium 은 기본적으로 자동 재생을 허용하므로 차단 경로를 검증하려면 필요)
+ */
+async function simulateAutoplayBlock(ctx) {
+  await ctx.addInitScript(() => {
+    let activated = false;
+    for (const t of ['pointerdown', 'pointerup', 'keydown', 'touchend', 'click'])
+      window.addEventListener(t, (e) => e.isTrusted && (activated = true), true);
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      if (activated) return play.call(this);
+      return Promise.reject(new DOMException("play() failed because the user didn't interact with the document first.", 'NotAllowedError'));
+    };
+  });
+}
+
+/**
+ * 주의: Playwright 가 페이지 안에서 실행하는 확인(evaluate·요소 대기)은 크롬이 '사용자 조작'으로 취급해
+ * 자동 재생을 허용해 버립니다. 차단 경로를 검증할 때는 앱의 판별(최대 1.2초)이 끝날 때까지
+ * 페이지 안에서 아무것도 실행하지 않고 기다린 뒤 확인합니다.
+ */
+const settleAutoplayProbe = (p) => p.waitForTimeout(1600);
+
+/** 첫 진입 배경음악: 허용 / 차단 / 소리 꺼짐 / 키 입력 / 빈 곳 클릭 */
+async function autostartScenarios(blockedBrowser, allowedBrowser, key, opts) {
+  const browser = blockedBrowser;
+  const audio = (p) => p.evaluate(() => window.__awardsAudio);
+  const hint = (p) => p.getByText('화면을 한 번 누르면 음악이 시작됩니다');
+
+  // (1-차단) 실제 브라우저 정책으로 자동 재생 차단: 조용히 실패 → 안내 → 빈 곳 클릭/터치로 시작
+  {
+    const ctx = await browser.newContext({ ...opts, deviceScaleFactor: 1 });
+    const p = await ctx.newPage();
+    watch(p, `${key}/real-block`);
+    await p.goto(BASE + '/');
+    await settleAutoplayProbe(p);
+    await hint(p).waitFor({ timeout: 4000 });
+    let a = await audio(p);
+    assert(a.autostart === 'blocked' && !a.unlocked, `실제 차단을 조용히 감지 (${JSON.stringify(a)})`);
+    const y = Math.round(p.viewportSize().height * 0.85);
+    if (opts.hasTouch) await p.touchscreen.tap(40, y);
+    else await p.mouse.click(40, y);
+    await p.waitForFunction(() => window.__awardsAudio?.musicPlaying, null, { timeout: 3000 });
+    await hint(p).waitFor({ state: 'hidden', timeout: 3000 });
+    a = await audio(p);
+    assert(a.contextState === 'running', `한 번 누르면 시작 (${JSON.stringify(a)})`);
+    assert(await p.getByRole('button', { name: '입장하기' }).isVisible(), '빈 곳을 눌러도 화면 전환 없이 음악만 시작');
+    await ctx.close();
+  }
+
+  // (1-허용) 자동 재생이 허용된 브라우저: 열리자마자 게이트에서 음악 재생, 안내 없음
+  {
+    const ctx = await allowedBrowser.newContext({ ...opts, deviceScaleFactor: 1 });
+    const p = await ctx.newPage();
+    watch(p, `${key}/autoplay-allowed`);
+    await p.goto(BASE + '/');
+    await p.waitForFunction(() => window.__awardsAudio?.musicPlaying, null, { timeout: 4000 });
+    const a = await audio(p);
+    assert(a.autostart === 'playing' && a.contextState === 'running', `허용 환경 자동 재생 (${JSON.stringify(a)})`);
+    assert(await p.getByRole('button', { name: '입장하기' }).isVisible(), '게이트 화면 그대로');
+    assert(!(await hint(p).isVisible()), '허용 환경에서는 안내 없음');
+    // 입장해도 음악은 끊기지 않고 계속
+    await p.getByRole('button', { name: '입장하기' }).click();
+    await p.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 2500 });
+    assert((await audio(p)).musicPlaying, '입장 후에도 계속 재생');
+    await ctx.close();
+  }
+
+  // (2) 소리를 꺼 둔 상태를 기억하면 자동 재생을 시도하지 않음
+  {
+    const ctx = await browser.newContext({ ...opts, deviceScaleFactor: 1 });
+    await ctx.addInitScript(() => localStorage.setItem('awards.sound', '0'));
+    const p = await ctx.newPage();
+    watch(p, `${key}/sound-off`);
+    await p.goto(BASE + '/');
+    await p.getByRole('button', { name: '입장하기' }).waitFor();
+    await p.waitForTimeout(1200);
+    const a = await audio(p);
+    assert(!a.musicPlaying && !a.unlocked && a.autostart === 'off', `소리 꺼짐: 시도 안 함 (${JSON.stringify(a)})`);
+    assert(!(await hint(p).isVisible()), '소리 꺼짐: 안내 없음');
+    await ctx.close();
+  }
+
+  // (3) 차단 환경: 키 입력 한 번으로 시작 (게이트 그대로)
+  {
+    const ctx = await browser.newContext({ ...opts, deviceScaleFactor: 1 });
+    await simulateAutoplayBlock(ctx);
+    const p = await ctx.newPage();
+    watch(p, `${key}/blocked-key`);
+    await p.goto(BASE + '/');
+    await settleAutoplayProbe(p);
+    await hint(p).waitFor({ timeout: 4000 });
+    assert(!(await audio(p)).musicPlaying, '차단: 조작 전 재생 안 함');
+    await p.keyboard.press('a');
+    await p.waitForFunction(() => window.__awardsAudio?.musicPlaying, null, { timeout: 3000 });
+    await hint(p).waitFor({ state: 'hidden', timeout: 3000 });
+    assert(await p.getByRole('button', { name: '입장하기' }).isVisible(), '키 입력은 화면 전환 없이 음악만 시작');
+    await ctx.close();
+  }
+
+  // (4) 차단 환경: 버튼이 아닌 빈 곳을 눌러도 시작
+  {
+    const ctx = await browser.newContext({ ...opts, deviceScaleFactor: 1 });
+    await simulateAutoplayBlock(ctx);
+    const p = await ctx.newPage();
+    watch(p, `${key}/blocked-click`);
+    await p.goto(BASE + '/');
+    await settleAutoplayProbe(p);
+    await hint(p).waitFor({ timeout: 4000 });
+    await snap(p, key, 'music-hint');
+    const vp = p.viewportSize();
+    if (opts.hasTouch) await p.touchscreen.tap(Math.round(vp.width * 0.12), Math.round(vp.height * 0.8));
+    else await p.mouse.click(Math.round(vp.width * 0.12), Math.round(vp.height * 0.8));
+    await p.waitForFunction(() => window.__awardsAudio?.musicPlaying, null, { timeout: 3000 });
+    await hint(p).waitFor({ state: 'hidden', timeout: 3000 });
+    const a = await audio(p);
+    assert(a.contextState === 'running' && a.autostart === 'playing', `빈 곳 클릭으로 시작 (${JSON.stringify(a)})`);
+    await ctx.close();
+  }
+  console.log(`  ✓ 첫 진입 음악: 실제 차단→${opts.hasTouch ? '터치' : '클릭'}·자동 재생 허용·소리 꺼짐·키 입력·빈 곳 ${opts.hasTouch ? '터치' : '클릭'}`);
+}
+
 async function run(browser, key, opts, portrait) {
   step = 0;
   const ctx = await browser.newContext({ ...opts, deviceScaleFactor: 1 });
+  await simulateAutoplayBlock(ctx); // 주 흐름은 자동 재생이 막힌 브라우저 기준
   const pub = await ctx.newPage();
   watch(pub, `${key}/public`);
 
@@ -129,11 +253,12 @@ async function run(browser, key, opts, portrait) {
 
   // 1. 게이트 → 입장하기 → 바로 갤러리 (긴 오프닝 없음)
   await pub.goto(BASE + '/');
+  await settleAutoplayProbe(pub);
   await pub.getByRole('button', { name: '입장하기' }).waitFor();
-  await pub.waitForTimeout(900);
   assert((await pub.locator('input').count()) === 0, '첫 화면에 접속 코드 입력칸 없음');
   await snap(pub, key, 'gate');
-  assert(!(await audio(pub)).musicPlaying, '클릭 전에는 음악 재생 안 함');
+  assert(!(await audio(pub)).musicPlaying, '차단 환경: 클릭 전에는 음악 재생 안 함');
+  assert(await pub.getByText('화면을 한 번 누르면 음악이 시작됩니다').isVisible(), '차단 환경: 음악 시작 안내 표시');
   const t0 = Date.now();
   await pub.getByRole('button', { name: '입장하기' }).click();
   await pub.waitForTimeout(500);
@@ -146,6 +271,7 @@ async function run(browser, key, opts, portrait) {
   let a = await audio(pub);
   assert(a.musicPlaying && a.musicSource === 'synth', `입장 클릭 후 기본 음악 재생 (${JSON.stringify(a)})`);
   assert(a.contextState === 'running', `AudioContext 실행 중 (${a.contextState})`);
+  assert(!(await pub.getByText('화면을 한 번 누르면 음악이 시작됩니다').isVisible()), '음악이 시작되면 안내 사라짐');
   await pub.waitForTimeout(1500);
   await snap(pub, key, 'gallery');
 
@@ -341,10 +467,15 @@ async function run(browser, key, opts, portrait) {
 }
 
 const browser = await chromium.launch();
+// 첫 진입 음악 검증용: 브라우저 자체 정책으로 자동 재생을 '항상 차단' / '허용' 한 두 브라우저
+// (Chromium 기본값은 방문 이력 등에 따라 판단이 달라질 수 있어 확정적으로 고정)
+const blockedBrowser = await chromium.launch({ args: ['--autoplay-policy=user-gesture-required'] });
+const allowedBrowser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 try {
   const portrait = await makePortrait(browser);
   for (const [key, opts] of Object.entries(VIEWPORTS)) {
     console.log(`▶ ${key}`);
+    await autostartScenarios(blockedBrowser, allowedBrowser, key, opts);
     await run(browser, key, opts, portrait);
     console.log(`  완료`);
   }
@@ -352,6 +483,8 @@ try {
   problems.push(`중단: ${e.message}`);
 } finally {
   await browser.close();
+  await allowedBrowser.close();
+  await blockedBrowser.close();
 }
 const uniq = [...new Set(problems)];
 if (uniq.length) {

@@ -25,6 +25,8 @@ export class SoundEngine {
   private musicVolume = DEFAULT_MUSIC_VOLUME;
   private musicDucked = false;
   private musicIntroDucked = false;
+  /** 화면 검증용: 자동 시작 상태 */
+  autostartState: 'idle' | 'probing' | 'playing' | 'blocked' | 'off' = 'idle';
 
   get isUnlocked() {
     return this.unlocked;
@@ -89,6 +91,56 @@ export class SoundEngine {
     this.unlocked = true;
   }
 
+  /**
+   * 사용자 조작 없이 소리를 낼 수 있는지 조용히 확인합니다.
+   * AudioContext 를 먼저 만들면 차단 환경에서 콘솔 경고가 남으므로,
+   * 지원되면 navigator.getAutoplayPolicy 를, 아니면 아주 짧은 무음 오디오의 play() 결과를 씁니다.
+   * 차단(NotAllowedError)이나 그 밖의 오류는 false.
+   */
+  async probeAutoplay(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+    if (this.unlocked && this.ctx?.state === 'running') return true;
+    const nav = navigator as Navigator & { getAutoplayPolicy?: (type: string) => string };
+    if (typeof nav.getAutoplayPolicy === 'function') {
+      try {
+        return nav.getAutoplayPolicy('audiocontext') === 'allowed';
+      } catch {
+        /* 아래 방식으로 */
+      }
+    }
+    const url = URL.createObjectURL(silentWav());
+    const el = new Audio();
+    el.preload = 'auto';
+    el.src = url;
+    // 결과가 늦게 오는 브라우저도 있어 제한 시간 안에 허용되지 않으면 차단으로 보고 안내를 바로 띄움
+    const played = el.play().then(
+      () => true,
+      () => false, // NotAllowedError 등: 조용히 실패
+    );
+    const ok = await Promise.race([played, new Promise<boolean>((r) => setTimeout(() => r(false), PROBE_TIMEOUT_MS))]);
+    const cleanup = () => {
+      el.pause();
+      el.removeAttribute('src');
+      URL.revokeObjectURL(url);
+    };
+    if (ok) cleanup();
+    else void played.then(cleanup); // 늦게 끝나도 정리
+    return ok;
+  }
+
+  private contextRunning(): boolean {
+    return this.ctx?.state === 'running';
+  }
+
+  /** 실제로 소리가 나는 상태(AudioContext running)가 됐는지 잠시 기다려 확인 */
+  async waitRunning(timeoutMs = 400): Promise<boolean> {
+    const ctx = this.ctx;
+    if (!ctx) return false;
+    if (ctx.state === 'running') return true;
+    await Promise.race([ctx.resume().catch(() => undefined), new Promise((r) => setTimeout(r, timeoutMs))]);
+    return this.contextRunning(); // await 이후 상태는 바뀌었을 수 있으므로 다시 읽음
+  }
+
   /** 탭이 백그라운드로 가면 음악을 멈췄다가 돌아오면 이어서 재생 */
   private onVisibility = () => {
     if (!this.ctx) return;
@@ -124,6 +176,7 @@ export class SoundEngine {
       contextState: this.ctx?.state ?? 'none',
       musicPlaying: this.musicPlaying,
       musicSource: this.musicPlayer?.currentSource?.kind ?? null,
+      autostart: this.autostartState,
       ducked: this.musicDucked,
       introDucked: this.musicIntroDucked,
       volume: this.musicVolume,
@@ -366,6 +419,29 @@ export class SoundEngine {
       this.newBus();
     }
   }
+}
+
+const PROBE_TIMEOUT_MS = 1200;
+
+/** 0.05초 무음 WAV (자동 재생 허용 여부 확인용) */
+function silentWav(): Blob {
+  const n = 400;
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const w = (o: number, str: string) => [...str].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF');
+  v.setUint32(4, 36 + n * 2, true);
+  w(8, 'WAVEfmt ');
+  v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true);
+  v.setUint32(28, 16000, true);
+  v.setUint16(32, 2, true);
+  v.setUint16(34, 16, true);
+  w(36, 'data');
+  v.setUint32(40, n * 2, true);
+  return new Blob([buf], { type: 'audio/wav' });
 }
 
 export const sound = new SoundEngine();
