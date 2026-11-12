@@ -101,7 +101,7 @@ http://localhost:5173 에서 공개 화면을, http://localhost:5173/admin 에�
 | `npm run lint` | ESLint |
 | `npm test` | Vitest 단위 테스트(오프닝 타임라인, 텍스트 파서, 복원 검증, 공개 전 마스킹 등) |
 | `npm run e2e` | 데모 모드 전체 흐름 Playwright 검사(먼저 `npx vite preview --port 4173` 실행). 입장 → 갤러리 → 상세 → 관리자 수정 → 반영 → 발표 공개 → 처음 화면으로 → 시네마틱 건너뛰기 → 음악 재생·덕킹·토글·탭 숨김을 확인합니다 |
-| `npm run check:lights` | 갤러리 무대 조명 검증: 입장 후 켜짐, 빔·광원 움직임(스크린샷), reduced-motion 고정, 모바일 CPU 4배 스로틀 프레임·레이아웃 지표(4173 preview 필요) |
+| `npm run check:lights` | 갤러리 무대 배경 검증: 1280·1920·375px 레이아웃(한 줄/2열, 하단 네모칸 없음, 겹침·명패 잘림 없음), 빔·광원·글로우·입자 움직임(스크린샷), reduced-motion 고정, 모바일 CPU 4배 스로틀 프레임·레이아웃 지표(4173 preview 필요) |
 | `npm run e2e:teams` | Teams 개인 탭 검증: 가짜 Teams 호스트 iframe에서 SDK 초기화, 다른 사이트 삽입 차단, `/admin?source=teams`, 로그인 유지, 파일 선택, 저장소 차단 대응을 확인합니다(4173 데모 + 4174 Supabase 빌드 preview 필요) |
 | `npm run teams:package -- --host 주소` | Teams 앱 패키지 zip 생성 |
 | `npm run test:db` | 로컬 PostgreSQL에서 마이그레이션·RLS 보안 테스트(`PGUSER=postgres`) |
@@ -245,7 +245,9 @@ teams-app/        Teams 앱 매니페스트 템플릿과 아이콘
 ## 사용 팁
 
 - 입장·오프닝 타이밍은 `src/components/intro/introConfig.ts` 한 파일에서 바꿉니다.
-- 갤러리 벽의 움직이는 무대 조명(서치라이트 빔 3개 + 넓은 광원)은 `src/components/gallery/galleryBeams.ts`(빔 위치·색·흔들림 폭·주기)와 `src/styles/index.css`의 `gallery-*` 규칙에서 조정합니다. transform만 애니메이션해서 저사양 기기에서도 부담이 적고, 움직임 줄이기 설정에서는 멈춘 상태로 보입니다.
+- 갤러리 배경은 시상식 오프닝 영상처럼 빛이 살아 움직이는 무대입니다. 레이어는 숨 쉬는 중앙 글로우, 서치라이트 빔 4개, 가로지르는 광원, 떠다니는 빛 입자, 16초에 한 번 은은한 카메라 플래시입니다. 빔 위치·색·주기는 `src/components/gallery/galleryBeams.ts`, 입자는 `galleryParticles.ts`, 애니메이션은 `src/styles/index.css`의 `gallery-*` 규칙에서 조정합니다.
+  - 저사양 기기를 위해 transform·opacity 애니메이션만 쓰고 `mix-blend-mode`는 쓰지 않습니다(모바일 CPU 4배 스로틀에서 블렌드 모드가 31fps까지 떨어뜨렸기 때문). 움직임 줄이기 설정에서는 입자·플래시 없이 멈춘 조명만 보입니다.
+  - 대안: 실제 영상 파일(mp4/webm) 루프를 배경으로 깔면 더 영상 같지만, 용량(수~수십 MB), 모바일 자동재생 정책, Teams 탭 로딩 문제가 있어 쓰지 않았습니다.
 - 기본 배경음악의 화음 진행·세기·템포는 `src/lib/audio/music/score.ts`, 음량·덕킹 비율은 `volume.ts`에서 바꿉니다.
 - 색과 글꼴은 `src/styles/tokens.css`의 CSS 변수로 관리합니다(글꼴은 `--font-base`). 포인트 컬러(`--c-accent`)는 관리자 설정에서 바꿀 수 있고, 실버 프리셋은 `#cfd8e6`입니다.
 - 제안 내용에서 줄바꿈은 그대로 보이고, `- `로 시작하는 줄은 글머리표로 바뀝니다. HTML은 해석하지 않습니다.

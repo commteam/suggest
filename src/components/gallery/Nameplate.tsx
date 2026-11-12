@@ -12,7 +12,7 @@ interface Props {
 export function Nameplate({ order, title, subtitle, dim, className }: Props) {
   return (
     <div
-      className={cn('relative mx-auto w-[92%] rounded-[3px] px-2 py-1.5 text-center', dim && 'opacity-80', className)}
+      className={cn('relative mx-auto w-[92%] rounded-[3px] px-3.5 py-1.5 text-center', dim && 'opacity-80', className)}
       style={{
         background: 'var(--g-frame)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 2px rgba(0,0,0,0.4), 0 6px 14px rgba(0,0,0,0.55)',

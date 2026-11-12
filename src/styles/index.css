@@ -66,11 +66,20 @@
     pointer-events: none;
   }
   /*
-   * 갤러리 무대 조명 (WallBackdrop)
-   * - 천장 부근에서 아래로 퍼지는 서치라이트 빔 3개가 서로 다른 박자로 좌우로 흔들림
-   * - 넓고 부드러운 광원 1개가 벽을 가로질러 천천히 이동
-   * - transform·opacity 만 애니메이션, will-change 는 빔에만
+   * 갤러리 무대 조명 (WallBackdrop → GalleryLights): "시상식 오프닝 영상" 같은 배경
+   * 레이어(아래→위): 숨 쉬는 글로우 · 서치라이트 빔 4개 · 가로지르는 광원 · 빛 입자 · 간헐적 플래시
+   * transform·opacity 만 애니메이션, will-change 는 움직이는 레이어에만
+   * mix-blend-mode 는 쓰지 않음: 큰 레이어 여러 개에 screen 블렌드를 걸면 모바일 CPU 4x 스로틀에서
+   * 31fps 까지 떨어짐(빔에만 걸어도 41fps). 어두운 배경 위 낮은 투명도의 밝은 빛이라 일반 합성으로도 거의 같은 결과.
    */
+  @keyframes gallery-breathe {
+    from {
+      opacity: 0.7;
+    }
+    to {
+      opacity: 1;
+    }
+  }
   @keyframes gallery-beam-sway {
     from {
       transform: translateX(-50%) rotate(var(--beam-from, -10deg));
@@ -81,10 +90,49 @@
   }
   @keyframes gallery-wash-drift {
     from {
-      transform: translateX(-28%);
+      transform: translateX(-30%);
     }
     to {
-      transform: translateX(28%);
+      transform: translateX(30%);
+    }
+  }
+  @keyframes gallery-drift-up {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 40px, 0);
+    }
+    20%,
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(var(--l-drift, 0px), calc(var(--l-rise, 120px) * -1), 0);
+    }
+  }
+  @keyframes gallery-twinkle {
+    0%,
+    100% {
+      opacity: 0;
+      transform: scale(0.35) rotate(0deg);
+    }
+    50% {
+      opacity: var(--p-alpha, 0.6);
+      transform: scale(1) rotate(45deg);
+    }
+  }
+  /* 16초에 한 번, 0.24초 동안 최대 0.10 (초당 3회 미만 — 광과민성 안전) */
+  @keyframes gallery-flash {
+    0%,
+    96.9% {
+      opacity: 0;
+    }
+    97.5% {
+      opacity: 0.1;
+    }
+    98.4%,
+    100% {
+      opacity: 0;
     }
   }
   .gallery-lights {
@@ -97,6 +145,13 @@
   }
   .gallery-lights[data-lit='true'] {
     opacity: 1;
+  }
+  .gallery-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(46% 42% at 50% 40%, rgba(58, 98, 190, 0.32), rgba(18, 48, 122, 0.12) 55%, transparent 78%);
+    opacity: 0.85;
+    animation: gallery-breathe 4s ease-in-out infinite alternate; /* 8초 주기로 숨 쉬기 */
   }
   .gallery-beam {
     position: absolute;
@@ -118,7 +173,6 @@
     );
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
-    mix-blend-mode: screen;
     will-change: transform;
     animation: gallery-beam-sway var(--beam-dur, 12s) ease-in-out var(--beam-delay, 0s) infinite alternate;
   }
@@ -128,9 +182,39 @@
     bottom: 0;
     left: -30%;
     right: -30%;
-    background: radial-gradient(32% 46% at 50% 38%, rgba(219, 232, 255, 0.09), rgba(219, 232, 255, 0.03) 45%, transparent 72%);
-    mix-blend-mode: screen;
-    animation: gallery-wash-drift 26s ease-in-out -7s infinite alternate;
+    background: radial-gradient(30% 44% at 50% 40%, rgba(219, 232, 255, 0.1), rgba(219, 232, 255, 0.03) 45%, transparent 72%);
+    will-change: transform;
+    animation: gallery-wash-drift 24s ease-in-out -7s infinite alternate;
+  }
+  /* 빛 입자: 점 입자 층(한 요소에 여러 점) + 십자 반짝임 — 움직이는 요소 수를 줄여 저사양에서도 가볍게 */
+  .gallery-particles {
+    position: absolute;
+    inset: 0;
+  }
+  .gallery-dots {
+    position: absolute;
+    inset: 0;
+    background-repeat: no-repeat;
+    opacity: 0;
+    will-change: transform, opacity;
+    animation: gallery-drift-up var(--l-dur, 16s) ease-in-out var(--l-delay, 0s) infinite;
+  }
+  .gallery-star {
+    position: absolute;
+    opacity: 0;
+    background:
+      radial-gradient(circle, var(--p-color) 0 12%, transparent 30%),
+      linear-gradient(90deg, transparent 44%, var(--p-color) 50%, transparent 56%),
+      linear-gradient(0deg, transparent 44%, var(--p-color) 50%, transparent 56%);
+    will-change: transform, opacity;
+    animation: gallery-twinkle var(--p-dur, 5s) ease-in-out var(--p-delay, 0s) infinite;
+  }
+  .gallery-flash {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(80% 70% at 50% 35%, #ffffff, #dbe8ff 60%, rgba(219, 232, 255, 0.6));
+    opacity: 0;
+    animation: gallery-flash 16s linear -6s infinite;
   }
 
   /* 금속 질감 — 액자·명패·버튼·강조에만 */
@@ -235,11 +319,16 @@
   }
 }
 
-/* 움직임 줄이기: 조명은 고정된 은은한 위치로만 (애니메이션·페이드 없음) */
+/* 움직임 줄이기: 움직임·입자·플래시 없이 조명은 고정된 은은한 위치로만 (페이드도 없음) */
 @media (prefers-reduced-motion: reduce) {
   .gallery-beam,
-  .gallery-wash {
+  .gallery-wash,
+  .gallery-glow {
     animation: none !important;
+  }
+  .gallery-particles,
+  .gallery-flash {
+    display: none !important;
   }
   .gallery-lights {
     transition: none !important;
