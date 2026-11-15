@@ -42,9 +42,12 @@ export function createAutostart(deps: AutostartDeps) {
     deps.onBlockedChange?.(false);
   };
 
-  // 버튼 동작을 막지 않음(preventDefault 없음) — 음악만 같이 시작
-  const onGesture = () => {
+  // 버튼 동작을 막지 않음(preventDefault 없음) — 음악만 같이 시작.
+  // 단, data-skip-music-start 가 붙은 요소(예: [관리자] 링크)를 누를 때는 시작하지 않음
+  const onGesture = (e?: Event) => {
     if (disposed || done) return;
+    const t = e?.target as Element | null | undefined;
+    if (t && typeof t.closest === 'function' && t.closest('[data-skip-music-start]')) return;
     try {
       deps.startFromGesture();
     } catch {

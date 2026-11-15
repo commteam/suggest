@@ -108,3 +108,31 @@ describe('배경음악 자동 시작', () => {
     expect(await p).toBe('cancelled');
   });
 });
+
+describe('음악 자동 시작 예외', () => {
+  it('data-skip-music-start 요소(예: [관리자] 링크)를 누르면 시작하지 않고, 다른 곳을 누르면 시작', async () => {
+    const link = document.createElement('a');
+    link.setAttribute('data-skip-music-start', '');
+    const inner = document.createElement('span');
+    link.appendChild(inner);
+    const other = document.createElement('button');
+    document.body.append(link, other);
+    const deps = {
+      probe: vi.fn(async () => false),
+      startWithoutGesture: vi.fn(),
+      startFromGesture: vi.fn(),
+      isRunning: vi.fn(async () => true),
+      onBlockedChange: vi.fn(),
+      target: document,
+    };
+    const a = createAutostart(deps);
+    await a.begin();
+    inner.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    expect(deps.startFromGesture).not.toHaveBeenCalled();
+    other.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    expect(deps.startFromGesture).toHaveBeenCalledTimes(1);
+    a.dispose();
+    link.remove();
+    other.remove();
+  });
+});

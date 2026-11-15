@@ -3,7 +3,7 @@
 > **배포 (3줄 요약)**
 > 1. Vercel 또는 Netlify에서 이 GitHub 저장소를 가져오면 됩니다. 빌드 명령 `npm run build`, 출력 폴더 `dist`, SPA 라우팅은 `vercel.json`/`netlify.toml`에 이미 들어 있습니다.
 > 2. 배포 설정의 환경 변수에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`를 넣고 다시 배포합니다. 비워 두면 데모 모드로 뜹니다.
-> 3. 배포된 주소로 들어오면 누구나 바로 첫 화면(입장하기)을 볼 수 있습니다. 내용은 `/admin`에서 관리자가 입력합니다.
+> 3. 배포된 주소로 들어오면 누구나 바로 첫 화면(입장하기)을 볼 수 있습니다. 내용은 첫 화면 맨 아래의 작은 **[관리자]** 링크(또는 `/admin`)로 들어가 관리자가 입력합니다.
 
 영화제 시상식처럼 연출한 사내 제안제도 우수자 발표 사이트입니다.
 닫힌 블루 벨벳 커튼 앞의 입장 화면, 금색 액자가 걸린 명예의 전당, 사람별 상세 화면(AS-IS → 추진 내용 → TO-BE → 진행 소감)으로 구성됩니다. 관리자 페이지에서 사진과 내용을 직접 고칠 수 있습니다.
@@ -49,6 +49,7 @@
   - 모든 파일은 다시 실행해도 안전합니다(멱등).
 - [ ] **3. 관리자 계정 만들기**
       Authentication → Users → **Add user** → 이메일과 비밀번호 입력, *Auto Confirm User* 체크
+      여기서 정한 비밀번호가 곧 관리자 페이지 진입 비밀번호입니다(비밀번호는 저장소·코드에 적지 않습니다). 이미 만든 계정이면 Users 목록에서 계정 → **Reset/Change password**로 바꿉니다.
       (권장) Authentication → Sign In / Providers → Email에서 **Allow new users to sign up** 끄기
 - [ ] **4. 관리자 지정 SQL** (SQL Editor에서 한 줄, 이메일만 바꿔서 실행)
   ```sql
@@ -63,7 +64,8 @@
       - 로컬 개발: `.env.example`을 `.env.local`로 복사해 값을 채웁니다(커밋되지 않음).
       - 배포: Vercel/Netlify 환경 변수에 같은 이름으로 넣습니다.
       - ⚠️ `service_role` 키는 절대 넣지 마세요. 브라우저에는 anon 키만 씁니다.
-- [ ] **6. 배포** (아래 「배포」 참고) → 배포 주소의 `/admin` 접속
+      - (권장) `VITE_ADMIN_EMAIL`에 3번에서 만든 관리자 이메일을 넣으면 로그인 화면에 이메일 칸 없이 **비밀번호만** 묻습니다.
+- [ ] **6. 배포** (아래 「배포」 참고) → 첫 화면 맨 아래 **[관리자]** 클릭(또는 `/admin` 접속)
 - [ ] **7. 내용 입력**: 우수자 관리에서 사진과 내용을 입력하고 공개 여부를 정합니다. 연출 설정에서 다음을 정합니다.
   - 행사 제목, 포인트 컬러
   - 입장 연출(바로 입장 / 시네마틱 오프닝)
@@ -112,7 +114,7 @@ http://localhost:5173 에서 공개 화면을, http://localhost:5173/admin 에�
 |---|---|---|
 | 조건 | 환경 변수 없음 | `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` |
 | 저장 위치 | 이 브라우저의 localStorage(사진은 data URL) | Postgres + Storage |
-| 관리자 로그인 | 비밀번호 `demo1234` | Supabase Auth 이메일 로그인 + `user_roles` |
+| 관리자 로그인 | 비밀번호 `demo1234` | Supabase Auth 로그인 + `user_roles` (`VITE_ADMIN_EMAIL`을 넣으면 비밀번호만 입력) |
 | 입장 | 바로 입장 | 바로 입장(접속 코드 없음) |
 | 발표 모드 전파 | 같은 브라우저의 다른 탭(BroadcastChannel) | 모든 브라우저(Realtime) |
 | 표시 | 상단에 "데모 모드" 배지 | 없음 |
@@ -125,6 +127,7 @@ http://localhost:5173 에서 공개 화면을, http://localhost:5173/admin 에�
 |---|---|
 | `VITE_SUPABASE_URL` | Supabase Project URL (`https://xxxx.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon public 키 |
+| `VITE_ADMIN_EMAIL` | (선택) 관리자 계정 이메일. 넣으면 로그인 화면이 비밀번호만 묻습니다. 비밀번호 자체는 넣지 않습니다 |
 
 비밀 값은 코드에 넣지 않습니다. `.env*.local`은 `.gitignore`에 들어 있습니다.
 
@@ -132,7 +135,7 @@ http://localhost:5173 에서 공개 화면을, http://localhost:5173/admin 에�
 
 ### Vercel
 1. Vercel → Add New → Project → 이 저장소를 Import합니다(Framework: Vite 자동 인식).
-2. Settings → Environment Variables에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`를 추가합니다.
+2. Settings → Environment Variables에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`(필요하면 `VITE_ADMIN_EMAIL`)를 추가합니다.
 3. Deploy합니다. 환경 변수를 바꾼 뒤에는 **Redeploy**해야 반영됩니다. Vite는 빌드할 때 값을 넣기 때문입니다.
 
 ### Netlify
