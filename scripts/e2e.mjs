@@ -259,6 +259,13 @@ async function run(browser, key, opts, portrait) {
   await snap(pub, key, 'gate');
   assert(!(await audio(pub)).musicPlaying, '차단 환경: 클릭 전에는 음악 재생 안 함');
   assert(await pub.getByText('화면을 한 번 누르면 음악이 시작됩니다').isVisible(), '차단 환경: 음악 시작 안내 표시');
+  // 첫 화면 하단 [관리자] 링크: 작게 표시, 음악 안내와 겹치지 않음
+  const adminLink = pub.getByRole('link', { name: '[관리자]' });
+  assert(await adminLink.isVisible(), '첫 화면에 [관리자] 링크');
+  const lb = await adminLink.boundingBox();
+  const hbx = await pub.getByText('화면을 한 번 누르면 음악이 시작됩니다').boundingBox();
+  assert(lb.y > hbx.y + hbx.height, `[관리자] 링크가 음악 안내 아래에 겹치지 않게 (${JSON.stringify([lb, hbx])})`);
+  assert(lb.y + lb.height <= pub.viewportSize().height, '[관리자] 링크가 화면 안');
   const t0 = Date.now();
   await pub.getByRole('button', { name: '입장하기' }).click();
   await pub.waitForTimeout(500);
@@ -272,6 +279,7 @@ async function run(browser, key, opts, portrait) {
   assert(a.musicPlaying && a.musicSource === 'synth', `입장 클릭 후 기본 음악 재생 (${JSON.stringify(a)})`);
   assert(a.contextState === 'running', `AudioContext 실행 중 (${a.contextState})`);
   assert(!(await pub.getByText('화면을 한 번 누르면 음악이 시작됩니다').isVisible()), '음악이 시작되면 안내 사라짐');
+  assert(!(await pub.getByRole('link', { name: '[관리자]' }).isVisible()), '입장 후에는 [관리자] 링크 숨김');
   await pub.waitForTimeout(1500);
   await snap(pub, key, 'gallery');
   // 갤러리 안내문구: 헤더에 한 줄로
@@ -310,11 +318,14 @@ async function run(browser, key, opts, portrait) {
   await pub.locator('[data-frame-id] button').nth(3).click();
   await pub.getByText('발표 전입니다').waitFor();
 
-  // 5. 관리자 로그인
+  // 5. 관리자 로그인: 주소 입력 대신 첫 화면 하단 [관리자] 링크로 진입
   const adm = await ctx.newPage();
   watch(adm, `${key}/admin`);
-  await adm.goto(BASE + '/admin');
+  await adm.goto(BASE + '/');
+  await settleAutoplayProbe(adm);
+  await adm.getByRole('link', { name: '[관리자]' }).click();
   await adm.waitForURL('**/admin/login');
+  assert(!(await adm.evaluate(() => window.__awardsAudio.musicPlaying)), '[관리자] 링크를 눌러도 배경음악이 시작되지 않음');
   await adm.getByLabel('비밀번호').fill('wrong');
   await adm.getByRole('button', { name: '로그인' }).click();
   await adm.getByText('비밀번호가 올바르지 않습니다').waitFor();

@@ -9,6 +9,13 @@ import { errorMessage } from '@/lib/errors';
 import { isLocalStoragePersistent } from '@/lib/safeStorage';
 import { cameFromTeams } from './teamsEntry';
 
+/**
+ * 관리자 이메일(비밀 아님)이 설정되어 있으면 로그인 화면은 비밀번호만 받습니다.
+ * 비밀번호는 코드에 두지 않고 Supabase Auth 의 그 계정 비밀번호로 확인합니다(서버 검증).
+ */
+const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL ?? '').trim();
+const PASSWORD_ONLY = !isDemo && ADMIN_EMAIL !== '';
+
 export default function AdminLogin() {
   const nav = useNavigate();
   const loc = useLocation();
@@ -24,7 +31,7 @@ export default function AdminLogin() {
     setBusy(true);
     setError(null);
     try {
-      const s = await provider.signIn(email.trim(), password);
+      const s = await provider.signIn(PASSWORD_ONLY ? ADMIN_EMAIL : email.trim(), password);
       if (!s.isAdmin) {
         setError('로그인했지만 관리자 권한이 없는 계정입니다.');
         await provider.signOut();
@@ -33,7 +40,8 @@ export default function AdminLogin() {
       const from = (loc.state as { from?: string } | null)?.from;
       nav(from && from.startsWith('/admin') ? from : '/admin', { replace: true });
     } catch (err) {
-      setError(errorMessage(err));
+      const msg = errorMessage(err);
+      setError(PASSWORD_ONLY && msg.includes('이메일 또는 비밀번호') ? '비밀번호가 올바르지 않습니다.' : msg);
     } finally {
       setBusy(false);
     }
@@ -78,7 +86,7 @@ export default function AdminLogin() {
           </div>
         )}
         <form onSubmit={submit} className="mt-8 space-y-4 rounded-xl border border-line bg-panel p-6" noValidate>
-          {!isDemo && (
+          {!isDemo && !PASSWORD_ONLY && (
             <div>
               <Label htmlFor="email">이메일</Label>
               <Input

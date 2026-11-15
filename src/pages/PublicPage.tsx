@@ -7,6 +7,7 @@ import { DetailOverlay } from '@/components/detail/DetailOverlay';
 import { Gallery, GallerySkeleton } from '@/components/gallery/Gallery';
 import { Confetti } from '@/components/intro/Confetti';
 import { EnterButton } from '@/components/intro/EnterButton';
+import { AdminEntryLink } from '@/components/intro/AdminEntryLink';
 import { MusicStartHint } from '@/components/intro/MusicStartHint';
 import { GateTitle, Intro } from '@/components/intro/Intro';
 import { INSTANT_CONFETTI_SCALE, REVEAL_SEQUENCE } from '@/components/intro/introConfig';
@@ -204,7 +205,13 @@ function Stage({ settings }: { settings: PublicSettings }) {
   useEffect(() => {
     sound.duckMusic(!!currentId);
   }, [currentId]);
-  useEffect(() => () => sound.duckMusic(false), []);
+  useEffect(
+    () => () => {
+      sound.duckMusic(false);
+      sound.stopMusic(0.3); // 공개 화면을 떠나면(예: [관리자]) 음악 정지
+    },
+    [],
+  );
 
   // ---- 갤러리/상세 ----
   const winners = state.status === 'ready' ? state.winners : null;
@@ -257,7 +264,8 @@ function Stage({ settings }: { settings: PublicSettings }) {
       <Confetti burstKey={confetti.key} scale={confetti.scale} originX={confetti.x} palette={confetti.palette} sides={confetti.sides} />
       <CameraFlash flashKey={flash.key} intensity={flash.intensity} full={flash.full} />
       <SoundToggle />
-      <MusicStartHint show={needsGesture} />
+      {introState.status === 'idle' && <AdminEntryLink />}
+      <MusicStartHint show={needsGesture} raised={introState.status === 'idle'} />
     </main>
   );
 }

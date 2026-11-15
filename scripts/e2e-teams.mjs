@@ -1,7 +1,7 @@
 /**
  * Microsoft Teams 개인 탭(iframe) 동작 검증
  *   npm run build && npx vite preview --port 4173 &            (데모, vercel.json 과 같은 CSP 헤더)
- *   VITE_SUPABASE_URL=https://e2e-fake.supabase.co VITE_SUPABASE_ANON_KEY=fake npx vite build --outDir dist-supabase
+ *   VITE_SUPABASE_URL=https://e2e-fake.supabase.co VITE_SUPABASE_ANON_KEY=fake VITE_ADMIN_EMAIL=admin@company.com npx vite build --outDir dist-supabase
  *   npx vite preview --outDir dist-supabase --port 4174 &
  *   node scripts/e2e-teams.mjs
  *
@@ -315,7 +315,8 @@ try {
     await page.goto('https://teams.microsoft.com/_e2e/sb');
     const fl = page.frameLocator('#app');
     await fl.getByRole('heading', { name: '관리자 로그인' }).waitFor({ timeout: 8000 });
-    await fl.getByLabel('이메일').fill('admin@company.com');
+    // VITE_ADMIN_EMAIL 이 설정된 빌드면 이메일 칸 없이 비밀번호만
+    if (await fl.getByLabel('이메일').isVisible()) await fl.getByLabel('이메일').fill('admin@company.com');
     await fl.getByLabel('비밀번호').fill('pw-1234');
     await fl.getByRole('button', { name: '로그인' }).click();
     await fl.getByRole('heading', { name: /우수자 관리/ }).waitFor({ timeout: 6000 });

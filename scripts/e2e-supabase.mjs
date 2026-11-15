@@ -1,6 +1,6 @@
 /**
  * Supabase 모드 공개 화면 검증 (가짜 Supabase 응답으로)
- *   VITE_SUPABASE_URL=https://e2e-fake.supabase.co VITE_SUPABASE_ANON_KEY=fake npx vite build --outDir dist-supabase
+ *   VITE_SUPABASE_URL=https://e2e-fake.supabase.co VITE_SUPABASE_ANON_KEY=fake VITE_ADMIN_EMAIL=admin@company.com npx vite build --outDir dist-supabase
  *   npx vite preview --outDir dist-supabase --port 4174 &
  *   node scripts/e2e-supabase.mjs
  * 실제 서버의 마스킹·권한은 supabase/tests/10_security_test.sql 이 검증합니다.
@@ -43,6 +43,11 @@ const browser = await chromium.launch();
 try {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await ctx.routeWebSocket(/realtime/, (ws) => ws.onMessage(() => {}));
+  const tokenBodies = [];
+  await ctx.route('**/auth/v1/token**', async (route) => {
+    tokenBodies.push(route.request().postDataJSON());
+    await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ code: 400, error_code: 'invalid_credentials', msg: 'Invalid login credentials' }) });
+  });
   await ctx.route('**/rest/v1/rpc/**', async (route) => {
     const fn = route.request().url().split('/rpc/')[1].split('?')[0];
     calls.push({ fn, body: route.request().postDataJSON() ?? {} });
@@ -53,7 +58,8 @@ try {
   });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => problems.push('pageerror: ' + e.message));
-  page.on('console', (m) => m.type() === 'error' && problems.push('console: ' + m.text()));
+  // 가짜 서버가 일부러 돌려주는 400(틀린 비밀번호)은 제외
+  page.on('console', (m) => m.type() === 'error' && !/status of 400/.test(m.text()) && problems.push('console: ' + m.text()));
 
   // 1) 주소로 들어오면 바로 첫 화면(입장하기) — 접속 코드 입력·준비 중 잠금 없음
   await page.goto(BASE + '/');
@@ -87,10 +93,16 @@ try {
   await page.reload();
   await page.getByRole('button', { name: '입장하기' }).waitFor();
 
-  // 6) 관리자 로그인 화면 (이메일 필드, 접속 코드 설정 없음)
-  await page.goto(BASE + '/admin');
+  // 6) 첫 화면 하단 [관리자] → 로그인. VITE_ADMIN_EMAIL 이 설정된 빌드라 비밀번호만 입력
+  await page.goto(BASE + '/');
+  await page.getByRole('link', { name: '[관리자]' }).click();
   await page.waitForURL('**/admin/login');
-  assert(await page.getByLabel('이메일').isVisible(), 'Supabase 모드 로그인은 이메일 입력');
+  assert(!(await page.getByLabel('이메일').isVisible()), '관리자 이메일이 설정되면 이메일 칸 없음');
+  await page.getByLabel('비밀번호').fill('wrong-password');
+  await page.getByRole('button', { name: '로그인' }).click();
+  await page.getByText('비밀번호가 올바르지 않습니다.').waitFor();
+  assert(tokenBodies.length === 1 && tokenBodies[0].email === 'admin@company.com', `설정된 관리자 이메일로 로그인 요청 (${JSON.stringify(tokenBodies)})`);
+  assert(tokenBodies[0].password === 'wrong-password', '입력한 비밀번호가 그대로 서버로');
 } catch (e) {
   problems.push('중단: ' + e.message);
 } finally {
