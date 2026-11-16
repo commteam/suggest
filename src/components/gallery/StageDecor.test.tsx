@@ -15,7 +15,7 @@ describe('무대 장식 (StageDecor)', () => {
     const root = container.firstElementChild as HTMLElement;
     expect(root.getAttribute('aria-hidden')).toBe('true');
     expect(root.className).toContain('pointer-events-none');
-    for (const name of ['curtains', 'truss', 'sunburst', 'wall-stars', 'floor', 'confetti']) expect(decor(root, name)).toHaveLength(1);
+    for (const name of ['curtains', 'truss', 'deco-corners', 'wall-stars', 'floor', 'confetti']) expect(decor(root, name)).toHaveLength(1);
     expect(decor(root, 'trophy')).toHaveLength(2);
     expect(root.querySelectorAll('.stage-curtain')).toHaveLength(2);
     // 조명 기구는 서치라이트 빔 4개 위치마다
@@ -51,13 +51,17 @@ describe('무대 장식 (StageDecor)', () => {
     expect(laurel.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('움직이는 요소(data-anim): 커튼 2 · 선버스트 · 벽 별 · 컨페티 · 유성 · 렌즈 플레어', () => {
+  it('움직이는 장식(data-anim): 커튼 2 · 벽 별 10 · 컨페티 · 유성 · 렌즈 플레어', () => {
     const { container } = render(<WallBackdrop lit />);
-    const animated = container.querySelectorAll('[data-anim]');
+    const n = (name: string) => decor(container, name)[0].querySelectorAll('[data-anim]').length;
     const confetti = Number((decor(container, 'confetti')[0] as HTMLElement).dataset.count);
     expect(confetti).toBeGreaterThanOrEqual(CONFETTI_COUNT.low);
     expect(confetti).toBeLessThanOrEqual(14);
-    expect(animated.length).toBe(2 + 1 + 10 + confetti + 2);
+    expect(n('curtains')).toBe(2);
+    expect(n('wall-stars')).toBe(10);
+    expect(n('confetti')).toBe(confetti + 2);
+    // 아르데코 장식은 정지
+    expect(n('deco-corners')).toBe(0);
   });
 
   it('컨페티: 같은 시드면 같은 배치, 속도·회전·떨어지는 위치가 제각각, 별과 리본, 저사양은 개수 감소', () => {
