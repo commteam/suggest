@@ -229,3 +229,38 @@ do $$ declare j jsonb := public.get_public_awards(); begin
 end $$;
 reset role;
 select 'MIGRATION 9 TESTS PASSED' as result;
+
+-- ---------- 10) 첨부 파일 ----------
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
+select public.restore_awards($j${
+  "settings": {"event_title":"t","event_subtitle":"s","intro_line":"l","accent_color":"#d9b45a","intro_length":"short","year":2026},
+  "winners": [
+    {"name":"공개됨","dept":"A","topic":"T1","as_is":"a","actions":"b","to_be":"c","reflection":"d","is_revealed":true,
+     "attachment_url":"https://x.supabase.co/storage/v1/object/public/winner-files/open.pdf","attachment_name":"추진 보고서.pdf"},
+    {"name":"비공개","dept":"B","topic":"T2","as_is":"a","actions":"b","to_be":"c","reflection":"d","is_revealed":false,
+     "attachment_url":"https://x.supabase.co/storage/v1/object/public/winner-files/hidden-file.pdf","attachment_name":"SECRET.pdf"},
+    {"name":"이전백업","dept":"C","topic":"T3","as_is":"a","actions":"b","to_be":"c","reflection":"d","is_revealed":true}
+  ]}$j$::jsonb);
+-- 관리자 업로드 허용
+insert into storage.objects(bucket_id, name) values ('winner-files', 'admin.pdf');
+-- 짝이 안 맞는 값은 거부
+select pg_temp.expect_error($q$update public.winners set attachment_name = null where name = '공개됨'$q$, 'winners_attachment_pair_check');
+-- 잘못된 형식의 백업은 삭제 전에 거부
+select pg_temp.expect_error($q$select public.restore_awards('{"settings":{"event_title":"t","event_subtitle":"s","intro_line":"l","accent_color":"#d9b45a","intro_length":"short","year":2026},"winners":[{"name":"x","dept":"","topic":"","as_is":"","actions":"","to_be":"","reflection":"","attachment_url":5}]}'::jsonb)$q$, '첨부 파일 주소');
+reset role;
+do $$ begin
+  if (select count(*) from public.winners) <> 3 then raise exception 'bad backup should not delete data'; end if;
+  if (select attachment_url from public.winners where name = '이전백업') is not null then raise exception 'old backup should have no attachment'; end if;
+  if not exists (select 1 from storage.buckets where id = 'winner-files' and public and file_size_limit = 20971520) then raise exception 'winner-files bucket missing'; end if;
+end $$;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+select pg_temp.expect_error($q$insert into storage.objects(bucket_id, name) values ('winner-files', 'anon.pdf')$q$, 'row-level security');
+do $$ declare j jsonb := public.get_public_awards(); begin
+  if j::text like '%hidden-file%' or j::text like '%SECRET%' then raise exception 'unrevealed attachment leaked'; end if;
+  if (j -> 0 ->> 'attachment_name') <> '추진 보고서.pdf' then raise exception 'revealed attachment missing'; end if;
+  if (j -> 2 -> 'attachment_url') <> 'null'::jsonb then raise exception 'no attachment should be null'; end if;
+end $$;
+reset role;
+select 'MIGRATION 10 TESTS PASSED' as result;

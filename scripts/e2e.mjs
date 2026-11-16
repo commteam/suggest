@@ -1,6 +1,7 @@
 /**
  * 데모 모드 전체 흐름 E2E (Playwright)
  *   npm run build && npx vite preview --port 4173 &
+ *   (한글 다운로드 파일명 확인 때문에 UTF-8 로캘에서 실행: LANG=C.UTF-8 npm run e2e)
  *   node scripts/e2e.mjs [baseUrl]
  * 콘솔 오류·페이지 오류·가로 스크롤을 검사하고, 단계별 스크린샷을 docs/screenshots/e2e-* 로 남깁니다.
  */
@@ -18,6 +19,9 @@ const VIEWPORTS = {
   pc: { viewport: { width: 1440, height: 900 } },
   mobile: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
 };
+
+// 첨부 파일 테스트용 작은 PDF
+const ATTACH_PDF = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
 
 const problems = [];
 let step = 0;
@@ -297,6 +301,7 @@ async function run(browser, key, opts, portrait) {
   assert((await audio(pub)).ducked, '상세 화면에서 음악 덕킹');
   for (const t of ['AS-IS', 'ACTION', 'TO-BE', 'REFLECTION', '제안 주제', '도장 라인 지그 교체 시간 단축'])
     assert(await dlg.getByText(t, { exact: false }).first().isVisible(), `상세에 "${t}" 표시`);
+  assert((await dlg.getByTestId('attachment-download').count()) === 0, '첨부 파일이 없으면 상세 내용 확인하기 버튼 없음');
   await pub.waitForTimeout(2300);
   await snap(pub, key, 'detail');
   // 4. 이전/다음 (키보드 + 버튼)
@@ -354,6 +359,15 @@ async function run(browser, key, opts, portrait) {
     src,
   );
   assert(dims[1] <= 1200 && Math.abs(dims[0] / dims[1] - 0.75) < 0.01, `3:4, 최대 1200px (${dims})`);
+  // 첨부 파일: 허용 안 된 형식은 거부, PDF 는 업로드
+  const attachInput = adm.getByLabel('첨부 파일 선택');
+  await attachInput.setInputFiles({ name: 'virus.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('MZ') });
+  await adm.getByText('첨부할 수 없는 파일입니다').first().waitFor();
+  assert((await adm.getByTestId('attachment-name').count()) === 0, '허용 안 된 형식은 첨부되지 않음');
+  await attachInput.setInputFiles({ name: '추진 보고서.pdf', mimeType: 'application/pdf', buffer: ATTACH_PDF });
+  await adm.getByTestId('attachment-name').getByText('추진 보고서.pdf').waitFor();
+  await adm.getByTestId('attachment-uploader').scrollIntoViewIfNeeded();
+  await snap(adm, key, 'admin-attachment');
   await adm.getByRole('button', { name: '저장' }).click();
   await adm.getByText('저장했습니다').first().waitFor();
   if (key === 'mobile') {
@@ -370,6 +384,19 @@ async function run(browser, key, opts, portrait) {
   assert(await pub.getByRole('dialog').locator('img[alt="김하늘 증명사진"]').isVisible(), '공개 화면에 새 사진');
   await pub.waitForTimeout(2600);
   await snap(pub, key, 'public-updated');
+  // 상세 맨 아래 "상세 내용 확인하기" → 원래 이름으로 다운로드
+  const dlBtn = pub.getByRole('dialog').getByTestId('attachment-download');
+  await dlBtn.scrollIntoViewIfNeeded();
+  await pub.waitForTimeout(400);
+  assert((await dlBtn.innerText()).includes('상세 내용 확인하기'), '버튼 문구');
+  const lastStory = await pub.getByRole('dialog').getByText('REFLECTION', { exact: false }).first().boundingBox();
+  const btnBox = await dlBtn.boundingBox();
+  assert(btnBox && lastStory && btnBox.y > lastStory.y, '버튼은 진행 소감보다 아래(맨 하단)');
+  await snap(pub, key, 'public-attachment');
+  const [download] = await Promise.all([pub.waitForEvent('download'), dlBtn.click()]);
+  assert(download.suggestedFilename() === '추진 보고서.pdf', `다운로드 파일 이름 (${download.suggestedFilename()})`);
+  const got = await (await import('node:fs/promises')).readFile(await download.path());
+  assert(got.equals(ATTACH_PDF), '다운로드 내용이 올린 파일과 같음');
   await pub.keyboard.press('Escape');
   await pub.getByRole('dialog').waitFor({ state: 'detached' });
 

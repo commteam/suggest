@@ -3,7 +3,9 @@ import { buildBackup, validateBackup } from './backup';
 import { toPublicWinners } from './mask';
 import { DEFAULT_SETTINGS, SEED_WINNERS } from './seedData';
 import { safeLocalStorage, safeSessionStorage } from '../safeStorage';
+import { validateAttachment } from '../attachment';
 import {
+  DEMO_MAX_ATTACHMENT_BYTES,
   MAX_WINNERS,
   type AdminSettings,
   type PresentationEvent,
@@ -195,6 +197,12 @@ export class MockProvider implements DataProvider {
   async uploadAudio(file: File, _kind: AudioKind) {
     if (file.size > DEMO_AUDIO_LIMIT)
       throw new Error('데모 모드에서는 3MB 이하 음원만 저장할 수 있습니다. (Supabase 모드는 10MB)');
+    return readAsDataUrl(file);
+  }
+
+  async uploadAttachment(file: File) {
+    const problem = validateAttachment(file, DEMO_MAX_ATTACHMENT_BYTES);
+    if (problem) throw new Error(problem.includes('이하') ? `${problem} (데모 모드 제한, Supabase 모드는 20MB)` : problem);
     return readAsDataUrl(file);
   }
 

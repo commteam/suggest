@@ -44,6 +44,8 @@ export interface DataProvider {
   reorderWinners(idsInOrder: string[]): Promise<void>;
   uploadPhoto(blob: Blob): Promise<string>;
   uploadAudio(file: File, kind: AudioKind): Promise<string>;
+  /** 우수자 첨부 파일 업로드 → 공개 URL (데모 모드는 data URL) */
+  uploadAttachment(file: File): Promise<string>;
   getAdminSettings(): Promise<AdminSettings>;
   updateSettings(patch: Partial<SiteSettings>): Promise<AdminSettings>;
   setAllRevealed(revealed: boolean): Promise<void>;

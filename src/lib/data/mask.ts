@@ -28,6 +28,8 @@ export function toPublicWinner(w: Winner): PublicWinner {
     actions: w.actions,
     to_be: w.to_be,
     reflection: w.reflection,
+    attachment_url: w.attachment_url ?? null,
+    attachment_name: w.attachment_url ? w.attachment_name || '첨부파일' : null,
     is_revealed: true,
   };
 }

@@ -76,6 +76,23 @@ describe('validateBackup (restore_awards 와 같은 규칙)', () => {
     expect(v.settings.music_volume).toBe(0.5);
   });
 
+  it('첨부 파일: 있으면 유지, 이전 백업(항목 없음)은 비움, 잘못된 형식은 오류', () => {
+    const p = good();
+    p.winners[0].attachment_url = 'https://x.supabase.co/storage/v1/object/public/winner-files/a.pdf';
+    p.winners[0].attachment_name = '보고서.pdf';
+    delete p.winners[1].attachment_url;
+    delete p.winners[1].attachment_name;
+    const v = validateBackup(p);
+    const first = v.winners.find((w) => w.id === p.winners[0].id)!;
+    const second = v.winners.find((w) => w.id === p.winners[1].id)!;
+    expect(first).toMatchObject({ attachment_name: '보고서.pdf' });
+    expect(second).toMatchObject({ attachment_url: null, attachment_name: null });
+
+    const bad = good();
+    bad.winners[0].attachment_url = 123;
+    expect(() => validateBackup(bad)).toThrow('첨부 파일 주소');
+  });
+
   it('잘못된 입장 연출·음악 설정 → 오류', () => {
     const a = good();
     a.settings.intro_mode = 'slow';

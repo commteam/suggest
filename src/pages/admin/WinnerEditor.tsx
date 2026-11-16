@@ -13,6 +13,7 @@ import { MAX_WINNERS, RECOMMENDED_STORY_LENGTH, type RevealedWinner, type Winner
 import { errorMessage } from '@/lib/errors';
 import { countChars } from '@/lib/text/parseStory';
 import { cn } from '@/lib/utils';
+import { AttachmentUploader } from './AttachmentUploader';
 import { PhotoUploader } from './PhotoUploader';
 
 const EMPTY: WinnerInput = {
@@ -26,6 +27,8 @@ const EMPTY: WinnerInput = {
   actions: '',
   to_be: '',
   reflection: '',
+  attachment_url: null,
+  attachment_name: null,
   is_revealed: false,
 };
 
@@ -166,6 +169,8 @@ export default function WinnerEditor() {
     actions: form.actions,
     to_be: form.to_be,
     reflection: form.reflection,
+    attachment_url: form.attachment_url,
+    attachment_name: form.attachment_name,
     is_revealed: true,
   };
 
@@ -247,6 +252,20 @@ export default function WinnerEditor() {
             {STORY_FIELDS.map((f) => (
               <StoryField key={f.key} label={f.label} value={form[f.key]} onChange={(v) => set(f.key, v)} />
             ))}
+          </Card>
+
+          <Card className="space-y-3">
+            <div>
+              <h2 className="text-lg font-bold">첨부 파일 (선택)</h2>
+              <p className="mt-1 text-sm text-muted">
+                공개 화면 상세 내용 맨 아래에 <b className="text-ink">상세 내용 확인하기</b> 버튼이 생겨 이 파일을 받을 수 있습니다.
+              </p>
+            </div>
+            <AttachmentUploader
+              url={form.attachment_url}
+              name={form.attachment_name}
+              onChange={(next) => setForm((f) => (f ? { ...f, attachment_url: next.url, attachment_name: next.name } : f))}
+            />
           </Card>
         </div>
 

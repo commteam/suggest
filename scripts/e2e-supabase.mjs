@@ -30,7 +30,7 @@ const settings = {
 };
 // 서버(get_public_awards)가 내려주는 형태: 공개 전 인물은 이름·소속·순서만
 const winners = [
-  { id: 'a', display_order: 1, name: '김하늘', dept: '생산기술팀', position: '책임', photo_url: null, topic: '도장 라인 지그 교체 시간 단축', as_is: 'a', actions: 'b', to_be: 'c', reflection: 'd', is_revealed: true },
+  { id: 'a', display_order: 1, name: '김하늘', dept: '생산기술팀', position: '책임', photo_url: null, topic: '도장 라인 지그 교체 시간 단축', as_is: 'a', actions: 'b', to_be: 'c', reflection: 'd', attachment_url: 'https://example.supabase.co/storage/v1/object/public/winner-files/0b0c.pdf', attachment_name: '추진 보고서.pdf', is_revealed: true },
   { id: 'b', display_order: 2, name: '이도윤', dept: '품질보증팀', is_revealed: false },
 ];
 
@@ -80,6 +80,12 @@ try {
   await page.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 4000 });
   await page.locator('[data-frame-id="a"] button').click();
   await page.getByRole('dialog').getByText('도장 라인 지그 교체 시간 단축', { exact: true }).waitFor();
+  // 첨부 파일: Supabase 공개 URL + ?download=원래이름, 새 창(Teams 안에서도 외부 브라우저로 받음)
+  const dl = page.getByRole('dialog').getByTestId('attachment-download');
+  const href = await dl.getAttribute('href');
+  assert(new URL(href).searchParams.get('download') === '추진 보고서.pdf', `다운로드 이름 파라미터 (${href})`);
+  assert(href.startsWith('https://example.supabase.co/storage/v1/object/public/winner-files/0b0c.pdf?'), '버킷 주소 유지');
+  assert((await dl.getAttribute('target')) === '_blank' && (await dl.getAttribute('rel')).includes('noopener'), '새 창 + noopener');
   await page.keyboard.press('Escape');
   await page.getByRole('dialog').waitFor({ state: 'detached' });
 

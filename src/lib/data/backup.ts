@@ -53,6 +53,13 @@ export function validateBackup(payload: unknown): { settings: SiteSettings; winn
       throw new BackupValidationError(`${n}번째 우수자의 직급 형식이 올바르지 않습니다.`);
     if (w.photo_url != null && typeof w.photo_url !== 'string')
       throw new BackupValidationError(`${n}번째 우수자의 사진 주소 형식이 올바르지 않습니다.`);
+    if (w.attachment_url != null && typeof w.attachment_url !== 'string')
+      throw new BackupValidationError(`${n}번째 우수자의 첨부 파일 주소 형식이 올바르지 않습니다.`);
+    if (w.attachment_name != null && typeof w.attachment_name !== 'string')
+      throw new BackupValidationError(`${n}번째 우수자의 첨부 파일 이름 형식이 올바르지 않습니다.`);
+    if (((w.attachment_url as string | null | undefined) ?? '').length > 1000 || ((w.attachment_name as string | null | undefined) ?? '').length > 200)
+      throw new BackupValidationError(`${n}번째 우수자의 첨부 파일 정보가 너무 깁니다.`);
+    const attachmentUrl = (w.attachment_url as string | null | undefined) || null;
     let id = typeof w.id === 'string' && UUID.test(w.id) ? w.id : crypto.randomUUID();
     if (ids.has(id)) id = crypto.randomUUID();
     ids.add(id);
@@ -68,6 +75,9 @@ export function validateBackup(payload: unknown): { settings: SiteSettings; winn
       actions: w.actions as string,
       to_be: w.to_be as string,
       reflection: w.reflection as string,
+      // 이전 버전 백업에는 없음 → 비움
+      attachment_url: attachmentUrl,
+      attachment_name: attachmentUrl ? (w.attachment_name as string | null | undefined) || '첨부파일' : null,
       is_revealed: w.is_revealed === true,
     };
   });
