@@ -13,6 +13,7 @@ import { ReflectionCard, StoryFlow } from './StoryBlock';
  */
 export function WinnerDetail({ winner, compact = false, TitleTag = 'h2' }: { winner: RevealedWinner; compact?: boolean; TitleTag?: 'h2' | 'div' }) {
   const reduce = useReducedMotion();
+  const hidden = winner.hidden_sections ?? [];
   const enter = (delay: number) =>
     reduce
       ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.2 } }
@@ -57,8 +58,14 @@ export function WinnerDetail({ winner, compact = false, TitleTag = 'h2' }: { win
           <p className="mt-3 text-2xl leading-[1.35] font-bold tracking-[-0.02em] text-ink sm:text-[2rem]">{winner.topic}</p>
         </motion.div>
         <motion.div key={`flow-${winner.id}`} {...enter(1)}>
-          <StoryFlow as_is={winner.as_is} actions={winner.actions} to_be={winner.to_be} />
-          <ReflectionCard text={winner.reflection} name={winner.name} />
+          <StoryFlow as_is={winner.as_is} actions={winner.actions} to_be={winner.to_be} hidden={hidden} />
+          {!hidden.includes('reflection') && (
+            <ReflectionCard
+              text={winner.reflection}
+              name={winner.name}
+              first={(['as_is', 'actions', 'to_be'] as const).every((k) => hidden.includes(k))}
+            />
+          )}
           <AttachmentButton url={winner.attachment_url} name={winner.attachment_name} />
         </motion.div>
       </div>

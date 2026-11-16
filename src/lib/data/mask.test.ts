@@ -38,6 +38,17 @@ describe('공개 전 데이터 마스킹', () => {
     expect(shown).toMatchObject({ attachment_url: null, attachment_name: null });
   });
 
+  it('숨긴 파트는 내용을 내려보내지 않고 숨김 목록을 함께 전달', () => {
+    const shown = toPublicWinner({ ...base, is_revealed: true, hidden_sections: ['reflection', 'as_is'] });
+    expect(shown).toMatchObject({ as_is: '', reflection: '', actions: base.actions, to_be: base.to_be, hidden_sections: ['as_is', 'reflection'] });
+    expect(JSON.stringify(shown)).not.toContain(base.reflection);
+  });
+
+  it('이전 데이터(숨김 항목 없음)는 모두 표시', () => {
+    const { hidden_sections: _h, ...old } = base;
+    expect(toPublicWinner({ ...(old as Winner), is_revealed: true })).toMatchObject({ hidden_sections: [], as_is: base.as_is });
+  });
+
   it('순서대로 정렬', () => {
     const list = toPublicWinners([
       { ...base, id: 'b', display_order: 2 },

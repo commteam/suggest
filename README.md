@@ -44,9 +44,10 @@
   8. `supabase/migrations/20260101000008_intro_mode_music.sql`: 입장 연출·배경음악 설정
   9. `supabase/migrations/20260101000009_remove_access_code.sql`: 접속 코드 없이 공개(누구나 입장)
   10. `supabase/migrations/20260101000010_winner_attachments.sql`: 우수자별 첨부 파일(`winner-files` 버킷, 20MB)
+  11. `supabase/migrations/20260101000011_story_section_visibility.sql`: 우수자별 파트(AS-IS·추진 내용·TO-BE·진행 소감) 표시/숨김
   10. (선택) `supabase/seed.sql`: 가상 인물 5명 예시 데이터
   - Supabase CLI를 쓴다면 `supabase link --project-ref <ref>` 다음 `supabase db push` 한 번으로 1~9가 실행됩니다.
-  - 이미 1~9를 실행한 프로젝트라면 **10번만 추가로 실행**하면 됩니다. 그보다 앞까지만 실행했다면 남은 번호를 차례로 실행하세요.
+  - 이미 1~10을 실행한 프로젝트라면 **11번만 추가로 실행**하면 됩니다. 그보다 앞까지만 실행했다면 남은 번호를 차례로 실행하세요.
   - 모든 파일은 다시 실행해도 안전합니다(멱등).
 - [ ] **3. 관리자 계정 만들기**
       Authentication → Users → **Add user** → 이메일과 비밀번호 입력, *Auto Confirm User* 체크
@@ -216,6 +217,7 @@ SPA 라우팅(`/admin` 새로고침)은 `vercel.json`과 `netlify.toml`의 rewri
 - **관리자 판별**: `user_roles` 테이블과 `has_role()`/`is_admin()`(SECURITY DEFINER, `search_path` 고정)으로만 판별합니다. `user_roles`는 클라이언트가 쓸 수 없습니다.
 - **Storage**: 버킷 읽기는 공개 URL로만 가능하고 쓰기는 관리자만 할 수 있습니다. 이미지는 5MB, 오디오는 10MB, 첨부 파일은 20MB로 제한하고 MIME 형식도 제한합니다(첨부 파일: PDF·PPT·Word·Excel·HWP/HWPX·ZIP·PNG·JPG·TXT, HTML·실행 파일은 불가). 익명 사용자의 목록 조회 정책은 일부러 만들지 않았습니다. 목록이 열리면 공개 전 사진의 파일명을 알아낼 수 있기 때문입니다. 파일명은 UUID입니다.
 - **첨부 파일**: 관리자 화면의 우수자 수정 → 「첨부 파일」에서 1개를 올리면, 공개 화면 상세 맨 아래에 **상세 내용 확인하기** 버튼이 생깁니다. 공개 전 인물의 첨부 주소는 `get_public_awards()`가 내려주지 않습니다. 저장 파일명은 UUID이고 원래 이름은 `attachment_name`에 저장해 다운로드할 때 붙입니다(`?download=`). 파일을 바꾸거나 빼거나 우수자를 삭제하면 이전 파일도 지웁니다. 데모 모드는 브라우저 저장 공간 때문에 2MB까지입니다.
+- **파트 표시/숨김**: 우수자 수정 → 「제안 내용」의 각 파트 오른쪽 스위치로 공개 화면 표시 여부를 정합니다(`winners.hidden_sections`). 숨긴 파트의 내용은 지워지지 않고 관리자에게만 보관되며, `get_public_awards()`는 그 파트를 빈 문자열로 내려보내 공개 화면으로 새지 않습니다. 남은 파트는 01, 02…로 다시 번호가 매겨집니다.
 - **Realtime**: `presentation_events`에는 이벤트 종류와 `winner_id`만 담습니다. 신호를 받은 클라이언트는 RPC로 다시 읽습니다.
 - **복원**: `restore_awards(payload)`는 SECURITY INVOKER로 동작하고 관리자만, `authenticated` 역할에만 실행 권한이 있습니다. 모든 검증을 삭제 전에 하고, 한 트랜잭션으로 처리해서 실패하면 원래대로 돌아갑니다.
 

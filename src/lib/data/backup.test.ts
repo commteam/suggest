@@ -93,6 +93,20 @@ describe('validateBackup (restore_awards 와 같은 규칙)', () => {
     expect(() => validateBackup(bad)).toThrow('첨부 파일 주소');
   });
 
+  it('숨김 파트: 정리해서 유지, 이전 백업은 모두 표시, 잘못된 값은 오류', () => {
+    const p = good();
+    p.winners[0].hidden_sections = ['reflection', 'as_is', 'as_is'];
+    delete p.winners[1].hidden_sections;
+    const v = validateBackup(p);
+    expect(v.winners.find((w) => w.id === p.winners[0].id)!.hidden_sections).toEqual(['as_is', 'reflection']);
+    expect(v.winners.find((w) => w.id === p.winners[1].id)!.hidden_sections).toEqual([]);
+    for (const bad of ['as_is', ['photo'], [1]]) {
+      const b = good();
+      b.winners[0].hidden_sections = bad;
+      expect(() => validateBackup(b)).toThrow('숨김 파트');
+    }
+  });
+
   it('잘못된 입장 연출·음악 설정 → 오류', () => {
     const a = good();
     a.settings.intro_mode = 'slow';

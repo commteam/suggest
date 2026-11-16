@@ -1,4 +1,4 @@
-import { MAX_WINNERS, type AwardsBackup, type SiteSettings, type Winner } from './types';
+import { MAX_WINNERS, STORY_SECTIONS, normalizeHiddenSections, type AwardsBackup, type SiteSettings, type Winner } from './types';
 
 /**
  * JSON 백업 검증. supabase/migrations 의 restore_awards() 와 같은 규칙입니다.
@@ -59,6 +59,11 @@ export function validateBackup(payload: unknown): { settings: SiteSettings; winn
       throw new BackupValidationError(`${n}번째 우수자의 첨부 파일 이름 형식이 올바르지 않습니다.`);
     if (((w.attachment_url as string | null | undefined) ?? '').length > 1000 || ((w.attachment_name as string | null | undefined) ?? '').length > 200)
       throw new BackupValidationError(`${n}번째 우수자의 첨부 파일 정보가 너무 깁니다.`);
+    if (
+      w.hidden_sections != null &&
+      (!Array.isArray(w.hidden_sections) || w.hidden_sections.some((x) => !(STORY_SECTIONS as readonly unknown[]).includes(x)))
+    )
+      throw new BackupValidationError(`${n}번째 우수자의 숨김 파트 값이 올바르지 않습니다.`);
     const attachmentUrl = (w.attachment_url as string | null | undefined) || null;
     let id = typeof w.id === 'string' && UUID.test(w.id) ? w.id : crypto.randomUUID();
     if (ids.has(id)) id = crypto.randomUUID();
@@ -78,6 +83,8 @@ export function validateBackup(payload: unknown): { settings: SiteSettings; winn
       // 이전 버전 백업에는 없음 → 비움
       attachment_url: attachmentUrl,
       attachment_name: attachmentUrl ? (w.attachment_name as string | null | undefined) || '첨부파일' : null,
+      // 이전 버전 백업에는 없음 → 모두 표시
+      hidden_sections: normalizeHiddenSections(w.hidden_sections),
       is_revealed: w.is_revealed === true,
     };
   });
