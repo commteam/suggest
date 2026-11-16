@@ -2,9 +2,10 @@
  * 갤러리 무대 배경 브라우저 검증
  *   npm run build && npx vite preview --port 4173 &
  *   node scripts/check-gallery-lights.mjs
- * - 1280·1920·375px: 입장 전 꺼짐 → 켜짐, 빔·광원·글로우·입자가 시간에 따라 움직임(스크린샷)
- * - 액자 5개 한 줄(데스크톱) / 2열(모바일), 하단 네모 패널 없음, 버튼·안내와 겹치지 않음, 명패 이름 잘림 없음
- * - prefers-reduced-motion: 움직임·입자·플래시 없음, 고정
+ * - 1840×970(Teams)·1280·768·375px: 입장 전 꺼짐 → 켜짐, 빔·광원·글로우·입자·장식이 시간에 따라 움직임(스크린샷)
+ * - 액자 5개 한 줄(데스크톱) / 3+2(태블릿) / 2열(모바일), 하단 네모 패널 없음, 버튼·안내와 겹치지 않음, 명패 이름 잘림 없음
+ * - 무대 장식(StageDecor): 커튼·트로피·벽 별·월계관이 액자·제목과 겹치지 않음, 커튼 → 조명 기구 → 월계관 → 바닥 → 입자 순서로 등장
+ * - prefers-reduced-motion: 움직임·입자·플래시·컨페티 없음, 정지 장식만, 고정
  * - 모바일 CPU 4x 스로틀: 프레임 간격, DevTools Performance 지표(Layout/RecalcStyle)
  */
 import fs from 'node:fs';
@@ -17,10 +18,52 @@ const OUT = 'docs/screenshots';
 fs.mkdirSync(OUT, { recursive: true });
 
 const VIEWPORTS = {
+  'teams-1840': { viewport: { width: 1840, height: 970 } },
   'desktop-1280': { viewport: { width: 1280, height: 800 } },
-  'desktop-1920': { viewport: { width: 1920, height: 1080 } },
+  'tablet-768': { viewport: { width: 768, height: 1024 } },
   'mobile-375': { viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true },
 };
+const FRAME_W = 152; // lg 이상 액자 폭 (작업 6에서 180 → 152)
+
+/** 장식 배치: 화면에 보이는 장식 상자와 액자·제목 상자 */
+const decorLayout = (p) =>
+  p.evaluate(() => {
+    const box = (el) => {
+      const r = el.getBoundingClientRect();
+      return { l: r.left, t: r.top + scrollY, r: r.right, b: r.bottom + scrollY, w: r.width, h: r.height };
+    };
+    const shown = (el) => {
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return cs.display !== 'none' && r.width > 0 && r.height > 0 && !el.closest('[style*="display: none"]');
+    };
+    const visible = (sel) => [...document.querySelectorAll(sel)].filter(shown).map(box);
+    const frames = [...document.querySelectorAll('[data-frame-id] button')].map(box);
+    return {
+      frames,
+      title: box(document.getElementById('gallery-title').querySelector('.metal-text')),
+      curtains: visible('.stage-curtain'),
+      trophies: visible('.stage-trophy'),
+      wallStars: visible('.stage-wall-star'),
+      laurels: visible('[data-decor="laurel"]'),
+      fixtures: visible('[data-fixture]'),
+      truss: visible('.stage-truss'),
+      confetti: Number(document.querySelector('[data-decor="confetti"]')?.dataset.count ?? 0),
+      // 컨페티·유성은 모든 화면에서, 커튼 흔들림·선버스트 회전은 640px 이상에서만 움직임
+      anim: [...document.querySelectorAll('.stage-confetti-piece[data-anim], .stage-shooting-star[data-anim]')].map((el) => getComputedStyle(el).animationName),
+      sway: [...document.querySelectorAll('.stage-curtain[data-anim], .stage-sunburst[data-anim]')].map((el) => getComputedStyle(el).animationName),
+    };
+  });
+const hit = (a, b, pad = 0) => a.l < b.r + pad && a.r > b.l - pad && a.t < b.b + pad && a.b > b.t - pad;
+const decorOpacity = (p) =>
+  p.evaluate(() =>
+    Object.fromEntries(
+      ['curtains', 'truss', 'laurel', 'floor', 'confetti'].map((n) => {
+        const el = document.querySelector(`[data-decor="${n}"]`);
+        return [n, el ? Number(getComputedStyle(el).opacity) : null];
+      }),
+    ),
+  );
 const problems = [];
 const assert = (c, m) => {
   if (!c) throw new Error('검증 실패: ' + m);
@@ -89,9 +132,42 @@ try {
       await p.goto(BASE + '/');
       await p.getByRole('button', { name: '입장하기' }).waitFor();
       assert((await lightState(p)).opacity === 0, `[${key}] 입장 전(커튼 뒤) 조명 꺼짐`);
+      // 장식 등장 순서: 입장 버튼을 누른 때부터 각 층이 처음 보이기 시작한 시각을 기록
+      await p.evaluate(() => {
+        const names = ['curtains', 'truss', 'laurel', 'floor', 'confetti'];
+        const seen = (window.__decorSeen = {});
+        const t0 = performance.now();
+        const tick = () => {
+          for (const n of names) {
+            // 화면에 보이는 것 (모바일 월계관은 sm 이상에서 display:none)
+            const el = [...document.querySelectorAll(`[data-decor="${n}"]`)].find((e) => getComputedStyle(e).display !== 'none');
+            if (el && seen[n] === undefined && Number(getComputedStyle(el).opacity) > 0.05) seen[n] = Math.round(performance.now() - t0);
+          }
+          if (performance.now() - t0 < 4000) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
       await p.getByRole('button', { name: '입장하기' }).click();
       await p.getByRole('button', { name: '처음 화면으로' }).waitFor({ timeout: 3000 });
-      await p.waitForTimeout(1600);
+      await p.waitForTimeout(3000);
+      const seen = await p.evaluate(() => window.__decorSeen);
+      // 트러스·조명 기구는 768px 미만에서 숨김
+      const layers = ['curtains', ...(opts.viewport.width >= 768 ? ['truss'] : []), 'laurel', 'floor', 'confetti'];
+      const seq = layers.map((n) => seen[n]);
+      assert(seq.every((t) => typeof t === 'number'), `[${key}] 장식이 모두 나타남 (${JSON.stringify(seen)})`);
+      // 실제로 차례대로 보이기 시작 (측정은 프레임 타이밍에 따라 수십 ms 흔들리므로 순서만 확인)
+      for (let i = 1; i < seq.length; i++) assert(seq[i] > seq[i - 1] + 100, `[${key}] 장식 등장 순서 (${JSON.stringify(seen)})`);
+      // 간격 자체는 CSS 지연값으로 확인: 0, 0.3, 0.6, 0.9, 1.2초
+      const delays = await p.evaluate(() =>
+        ['curtains', 'truss', 'laurel', 'floor', 'confetti'].map((n) => {
+          const el = [...document.querySelectorAll(`[data-decor="${n}"]`)].find((e) => getComputedStyle(e).display !== 'none') ?? document.querySelector(`[data-decor="${n}"]`);
+          return parseFloat(getComputedStyle(el).transitionDelay);
+        }),
+      );
+      assert(JSON.stringify(delays) === JSON.stringify([0, 0.3, 0.6, 0.9, 1.2]), `[${key}] 장식 등장 간격 0.3초 (${delays})`);
+      console.log(`  · [${key}] 장식 등장(ms): ${JSON.stringify(seen)}`);
+      const o2 = await decorOpacity(p);
+      assert(['curtains', 'floor', 'confetti'].every((n) => o2[n] === 1), `[${key}] 장식 모두 나타남 (${JSON.stringify(o2)})`);
       const s0 = await lightState(p);
       assert(s0.opacity === 1, `[${key}] 입장 후 조명 켜짐`);
       assert(s0.beams.length === 4 && s0.wash.length === 1 && s0.glow.length === 1 && s0.flash.length === 1, `[${key}] 레이어 구성`);
@@ -102,17 +178,44 @@ try {
       const L = await layout(p);
       assert(L.hasFloor && L.panelBoxes === 0, `[${key}] 하단 네모 패널 없음 (${L.panelBoxes})`);
       assert(L.scrollW <= L.vw + 1, `[${key}] 가로 스크롤 없음`);
-      if (!mobile) {
+      if (key.startsWith('tablet')) {
+        assert(new Set(L.tops).size === 2, `[${key}] 태블릿 두 줄 (${L.tops})`);
+      } else if (!mobile) {
         assert(new Set(L.tops).size === 1, `[${key}] 액자 5개 한 줄 (${L.tops})`);
-        assert(L.widths.every((w) => w === 180), `[${key}] 액자 폭 180px (${L.widths})`);
+        assert(L.widths.every((w) => w === FRAME_W), `[${key}] 액자 폭 ${FRAME_W}px (${L.widths})`);
+        const mid = (Math.min(...L.tops) + L.lastBottom) / 2;
+        assert(mid < opts.viewport.height / 2 + 30, `[${key}] 액자 묶음이 세로 중앙 근처~약간 위 (${Math.round(mid)})`);
+        assert(L.lastBottom < opts.viewport.height * 0.78, `[${key}] 액자 아래 바닥 공간 (${Math.round(L.lastBottom)})`);
       } else {
         assert(new Set(L.tops).size === 3, `[${key}] 모바일 2열 줄바꿈 (${L.tops})`);
       }
+      // 장식이 액자·제목을 가리지 않음
+      const D = await decorLayout(p);
+      const firstFrame = D.frames.reduce((a, b) => (a.l < b.l ? a : b));
+      const lastFrame = D.frames.reduce((a, b) => (a.r > b.r ? a : b));
+      assert(D.curtains.length === 2, `[${key}] 커튼 2개`);
+      assert(D.curtains[0].r <= firstFrame.l - 4 && D.curtains[1].l >= lastFrame.r + 4, `[${key}] 커튼이 액자와 겹치지 않음`);
+      const cw = D.curtains[0].w / opts.viewport.width;
+      assert(mobile ? cw >= 0.03 && cw <= 0.065 : cw >= 0.055 && cw <= 0.125, `[${key}] 커튼 폭 ${(cw * 100).toFixed(1)}%`);
+      for (const [name, list] of [['트로피', D.trophies], ['벽 별', D.wallStars], ['월계관', D.laurels]])
+        for (const b of list) {
+          assert(!D.frames.some((f) => hit(b, f, 6)), `[${key}] ${name}이 액자와 겹치지 않음`);
+          assert(!hit(b, D.title, -2), `[${key}] ${name}이 제목 글자를 가리지 않음`);
+        }
+      assert(D.laurels.length === (mobile ? 1 : 2), `[${key}] 월계관 ${mobile ? '제목 위 1개' : '제목 양옆 2개'} (${D.laurels.length})`);
+      const wide = opts.viewport.width >= 1024;
+      assert((D.truss.length === 1 && D.fixtures.length === 4) === opts.viewport.width >= 768, `[${key}] 트러스·조명 기구 표시 여부`);
+      assert(D.trophies.length === (wide ? 2 : 0), `[${key}] 트로피 표시 여부 (${D.trophies.length})`);
+      assert(D.confetti >= (mobile ? 6 : 10) && D.confetti <= 14, `[${key}] 컨페티 ${D.confetti}개`);
+      assert(D.anim.length > 0 && D.anim.every((n) => n !== 'none'), `[${key}] 장식 애니메이션 동작`);
+      assert(D.sway.every((n) => (opts.viewport.width >= 640 ? n !== 'none' : n === 'none')), `[${key}] 커튼·선버스트 움직임은 640px 이상만 (${D.sway})`);
       assert(L.footerTop === null || L.footerTop > L.lastBottom + 8, `[${key}] 처음 화면으로 버튼이 액자와 겹치지 않음 (${L.footerTop} > ${L.lastBottom})`);
 
       const shots = [];
+      const confettiAt = [];
       for (let t = 0; t < 3; t++) {
         shots.push(await lightState(p));
+        confettiAt.push(await p.evaluate(() => [...document.querySelectorAll('.stage-confetti-piece')].map((e) => getComputedStyle(e).transform).join('|')));
         await p.screenshot({ path: `${OUT}/stage-${key}-${t}.png` });
         if (t < 2) await p.waitForTimeout(2500);
       }
@@ -122,6 +225,7 @@ try {
       assert(moved((s) => s.glow[0].opacity), `[${key}] 글로우 숨쉬기`);
       assert(moved((s) => s.particles.map((x) => x.transform + x.opacity)), `[${key}] 입자 움직임`);
       assert(new Set(shots[2].beams.map((b) => b.transform)).size === 4, `[${key}] 빔 4개가 서로 다른 위치`);
+      assert(new Set(confettiAt).size === 3, `[${key}] 컨페티가 떨어짐`);
 
       // 명패: 공개된 사람 두 명을 열어 이름이 잘리지 않는지
       for (const i of [0, 1]) {
@@ -152,6 +256,15 @@ try {
       assert([...a.beams, ...a.wash, ...a.glow].every((i) => i.animation === 'none'), `[${key}] reduce: 애니메이션 없음`);
       assert(a.particlesBox[0].display === 'none' && a.flash[0].display === 'none', `[${key}] reduce: 입자·플래시 숨김`);
       assert(JSON.stringify(a) === JSON.stringify(b), `[${key}] reduce: 고정`);
+      const rd = await p.evaluate(() => ({
+        anim: document.querySelectorAll('[data-anim]').length,
+        confetti: !!document.querySelector('[data-decor="confetti"]'),
+        curtains: document.querySelectorAll('.stage-curtain').length,
+        floor: !!document.querySelector('[data-floor]'),
+        running: document.getAnimations().filter((x) => x.playState === 'running' && x.effect?.target?.closest?.('.stage-root')).length,
+      }));
+      assert(rd.anim === 0 && !rd.confetti && rd.running === 0, `[${key}] reduce: 장식 움직임·컨페티 없음 (${JSON.stringify(rd)})`);
+      assert(rd.curtains === 2 && rd.floor, `[${key}] reduce: 커튼·바닥은 보임`);
       await p.screenshot({ path: `${OUT}/stage-${key}-reduced.png` });
       await ctx.close();
       console.log(`  ✓ [${key}] reduced-motion: 고정, 입자·플래시 없음`);
