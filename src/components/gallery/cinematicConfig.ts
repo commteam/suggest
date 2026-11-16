@@ -138,3 +138,53 @@ export const CINEMATIC_BUDGET = {
   normal: { stars: 150, twinkleGroups: 2, twinklePerGroup: 14, glitter: 110, floor: 120 },
   low: { stars: 80, twinkleGroups: 2, twinklePerGroup: 8, glitter: 50, floor: 60 },
 } as const;
+
+// ---------------------------------------------------------------------------
+// 데스크톱 갈라(시안 C) 전용 효과 — 좌표는 화면 % (제목 단: x 8~34%, 액자 별자리: x 38~96% · y 15~72%, 지평선: y 약 89%)
+// ---------------------------------------------------------------------------
+
+/** 하늘을 흐르는 오로라 띠 */
+export const AURORA = [
+  { top: 4, left: 28, w: 62, h: 26, rot: -8, hue: 'violet', dur: 26, delay: -4 },
+  { top: 14, left: 52, w: 54, h: 20, rot: 6, hue: 'teal', dur: 34, delay: -15 },
+  { top: 0, left: 2, w: 44, h: 22, rot: 10, hue: 'pink', dur: 30, delay: -9 },
+] as const;
+
+/** 떠다니는 오브제: 금빛 별 · 크리스털 구슬 · 다이아몬드 (제목·액자를 피한 빈 곳) */
+export const ORBS = [
+  { kind: 'star', x: 4, y: 80, size: 34, dur: 11, delay: -2 },
+  { kind: 'orb', x: 33, y: 12, size: 26, dur: 14, delay: -6 },
+  { kind: 'diamond', x: 36, y: 81, size: 22, dur: 12, delay: -3 },
+  { kind: 'star', x: 71, y: 7, size: 22, dur: 13, delay: -8 },
+  { kind: 'orb', x: 97.5, y: 46, size: 18, dur: 10, delay: -1 },
+  { kind: 'diamond', x: 21, y: 7, size: 16, dur: 15, delay: -10 },
+  { kind: 'star', x: 62, y: 83, size: 18, dur: 12.5, delay: -5 },
+] as const;
+
+/** 객석 카메라 플래시: 지평선 근처에서 짧게 터짐 (요소마다 주기·시점이 달라 전체 약 1초에 1번, 초당 3회 미만) */
+export const CAMERA_FLASHES = [
+  { x: 6, y: 93, size: 64, dur: 9.4, delay: -1.2 },
+  { x: 18, y: 86, size: 46, dur: 12.2, delay: -7.9 },
+  { x: 31, y: 95, size: 58, dur: 10.6, delay: -4.4 },
+  { x: 44, y: 88, size: 42, dur: 13.4, delay: -11.1 },
+  { x: 55, y: 94, size: 70, dur: 8.8, delay: -3.3 },
+  { x: 67, y: 86, size: 44, dur: 11.7, delay: -9.6 },
+  { x: 79, y: 93, size: 60, dur: 9.9, delay: -6.1 },
+  { x: 90, y: 87, size: 48, dur: 12.8, delay: -2.5 },
+  { x: 97, y: 95, size: 56, dur: 10.3, delay: -8.4 },
+] as const;
+
+/** 추가 별똥별 (기존 1개 + 2개) */
+export const METEORS = [
+  { top: 6, left: 44, rot: 24, dur: 27, delay: -9 },
+  { top: 18, left: 66, rot: 32, dur: 41, delay: -30 },
+] as const;
+
+/** 데스크톱 렌즈 플레어 위치 (시안 C) — SPARKLES 와 같은 순서 */
+export const SPARKLES_DESKTOP = [
+  { x: 14, y: 12 },
+  { x: 92, y: 15 },
+  { x: 48, y: 84 },
+  { x: 87, y: 79 },
+  { x: 30, y: 74 },
+] as const;

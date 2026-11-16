@@ -31,16 +31,23 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
   return (
     <motion.li
       data-frame-id={winner.id}
-      className="group/frame relative w-[calc(50%-0.75rem)] max-w-[165px] sm:w-[150px] lg:w-[152px]"
+      className={cn(
+        'group/frame relative w-[calc(50%-0.75rem)] max-w-[165px] sm:w-[150px] lg:w-[152px] xl:w-[clamp(136px,9vw,170px)] xl:max-w-none',
+        // 데스크톱(1280px 이상): 별자리처럼 위아래로 어긋난 물결 (1·3·5번이 아래)
+        index % 2 === 0 && 'xl:mt-[clamp(80px,13vh,140px)]',
+      )}
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 60, scale: 0.92 }}
       animate={show ? { opacity: 1, y: 0, scale: 1 } : undefined}
       transition={{ delay: reduce ? 0 : 0.25 + (index * FRAME_STAGGER_MS) / 1000, duration: reduce ? 0.3 : 0.9, ease: [0.2, 0.8, 0.2, 1] }}
     >
-      {/* 위에서 떨어지는 푸른 조명 */}
+      {/* 데스크톱: 액자 뒤 보랏빛 광륜 + 위쪽 별 마디(별자리 선이 이어지는 점) */}
+      <span aria-hidden className="frame-halo pointer-events-none absolute top-[42%] left-1/2 hidden h-[360px] w-[300px] -translate-x-1/2 -translate-y-1/2 xl:block" />
+      <span aria-hidden data-constellation-node className="frame-node pointer-events-none absolute -top-[18px] left-1/2 hidden -translate-x-1/2 xl:block" />
+      {/* 위에서 떨어지는 푸른 조명 (모바일·태블릿) */}
       <div
         aria-hidden
         className={cn(
-          'pointer-events-none absolute -top-24 left-1/2 h-[calc(100%+6rem)] w-[150%] -translate-x-1/2 transition-opacity duration-500',
+          'pointer-events-none absolute -top-24 left-1/2 h-[calc(100%+6rem)] w-[150%] -translate-x-1/2 transition-opacity duration-500 xl:hidden',
           highlight ? 'opacity-100' : 'opacity-55',
           'group-hover/frame:opacity-100',
         )}
@@ -50,8 +57,8 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
           maskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
         }}
       />
-      {/* 와이어 */}
-      <svg aria-hidden className="absolute -top-12 left-1/2 h-12 w-24 -translate-x-1/2" viewBox="0 0 112 56">
+      {/* 와이어 (모바일·태블릿) */}
+      <svg aria-hidden className="absolute -top-12 left-1/2 h-12 w-24 -translate-x-1/2 xl:hidden" viewBox="0 0 112 56">
         <path d="M56 6 L18 56 M56 6 L94 56" stroke="#8a95ad" strokeWidth="0.9" fill="none" opacity="0.7" />
         <circle cx="56" cy="5" r="3.4" fill="var(--c-accent)" />
         <circle cx="55" cy="4" r="1.2" fill="#fff" opacity="0.6" />

@@ -32,5 +32,9 @@ describe('무대 장식: 움직임 줄이기', () => {
     // 깜빡이거나 가로지르는 빛(렌즈 플레어·아나모픽 플래시)은 그리지 않음
     expect(container.querySelector('[data-decor="cine-sparkles"]')).toBeNull();
     expect(container.querySelector('.cine-sweep')).toBeNull();
+    // 데스크톱 갈라: 오로라·행성·오브제는 정지 상태로, 서치라이트·별똥별·카메라 플래시는 없음
+    expect(container.querySelector('[data-decor="gala-lights"]')).toBeNull();
+    expect(container.querySelector('[data-decor="gala-sky"]')).not.toBeNull();
+    expect(container.querySelector('[data-decor="gala-orbs"]')).not.toBeNull();
   });
 });

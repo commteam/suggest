@@ -15,6 +15,7 @@ import {
   makeTwinkleGroups,
   PILLARS,
   SPARKLES,
+  SPARKLES_DESKTOP,
   wingCurves,
 } from './cinematicConfig';
 import { DECOR_ORDER, type Vars } from './stageDecorConfig';
@@ -204,8 +205,10 @@ export function LensSparkles() {
           data-anim=""
           style={
             {
-              left: `${s.x}%`,
-              top: `${s.y}%`,
+              '--sp-x': `${s.x}%`,
+              '--sp-y': `${s.y}%`,
+              '--sp-lx': `${SPARKLES_DESKTOP[i].x}%`,
+              '--sp-ly': `${SPARKLES_DESKTOP[i].y}%`,
               width: s.size,
               height: s.size,
               '--sp-size': `${s.size}px`,

@@ -1,4 +1,5 @@
 import { CinematicSky, FloorGlitter, HorizonGlow, LaserFan, LensSparkles, LightPillars, LightWings } from './CinematicLights';
+import { GalaEffects } from './GalaEffects';
 import { GalleryLights } from './GalleryLights';
 import { ArtDecoCorners, Curtains, FallingConfetti, StageFloor, Trophy, Truss, WallStars } from './StageDecor';
 
@@ -29,6 +30,8 @@ export function WallBackdrop({ lit = true }: { lit?: boolean }) {
       <FloorGlitter />
       <LaserFan />
       <HorizonGlow />
+      {/* 데스크톱 전용: 오로라·고리 행성·떠다니는 오브제·서치라이트·별똥별·카메라 플래시 */}
+      <GalaEffects />
       {/* 무대 조명: 커튼·트러스·액자 아래 */}
       <GalleryLights lit={lit} />
       <LensSparkles />
@@ -36,7 +39,7 @@ export function WallBackdrop({ lit = true }: { lit?: boolean }) {
       <Trophy side="right" />
       <Curtains />
       {/* 크라운 몰딩 */}
-      <div className="absolute inset-x-0 top-0 h-3 bg-[linear-gradient(to_bottom,#081a44,#050b1c)] shadow-[0_4px_12px_rgba(0,0,0,0.6)]" />
+      <div className="stage-molding absolute inset-x-0 top-0 h-3 bg-[linear-gradient(to_bottom,#081a44,#050b1c)] shadow-[0_4px_12px_rgba(0,0,0,0.6)]" />
       <Truss />
       <FallingConfetti />
     </div>
