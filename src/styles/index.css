@@ -261,14 +261,6 @@
       transform: scaleX(1.01);
     }
   }
-  @keyframes stage-spin {
-    from {
-      transform: translate(-50%, -50%) rotate(0deg);
-    }
-    to {
-      transform: translate(-50%, -50%) rotate(360deg);
-    }
-  }
   @keyframes stage-twinkle {
     0%,
     100% {
@@ -425,27 +417,6 @@
   }
 
   /* ④ 선버스트 · 아르데코 · 벽의 별 */
-  .stage-sunburst {
-    position: absolute;
-    left: 50%;
-    top: 46%;
-    width: min(100vmax, 1600px);
-    height: min(100vmax, 1600px);
-    transform: translate(-50%, -50%);
-  }
-  /* 모바일: 작게, 회전 없이 (화면 전체 크기의 회전 레이어는 저사양 합성 비용이 큼) */
-  @media (max-width: 639.98px) {
-    .stage-sunburst {
-      width: 110vmax;
-      height: 110vmax;
-    }
-  }
-  @media (min-width: 640px) {
-    .stage-sunburst[data-anim] {
-      will-change: transform;
-      animation: stage-spin 160s linear infinite;
-    }
-  }
   .stage-deco-corner {
     display: none;
     position: absolute;
@@ -489,13 +460,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    height: 110px;
-  }
-  @media (min-width: 640px) {
-    .stage-floor {
-      height: 22vh;
-      min-height: 150px;
-    }
+    height: var(--floor-h, 110px);
   }
   .stage-floor > * {
     position: absolute;
@@ -612,6 +577,656 @@
     .stage-trophy {
       display: block;
     }
+  }
+
+  /*
+   * 시네마틱 무대 조명 (CinematicLights.tsx) — 밤하늘·빛 기둥·빛의 날개·레이저 부채꼴·지평선 폭발광·렌즈 플레어·반짝이 바닥
+   * --floor-h: 바닥 높이(= 지평선 위치). 하늘 요소는 지평선 위 상자, 바닥 반짝이는 아래 상자
+   * transform·opacity 만 애니메이션. 640px 미만은 날개·일부 플레어를 숨기고 레이저 흔들림을 끔
+   */
+  /* 지평선 높이: 갤러리 섹션에 정의해 레이아웃(Gallery)과 배경(WallBackdrop)이 같은 값을 씀 */
+  .gallery-stage,
+  .stage-root {
+    --floor-h: 110px;
+  }
+  @media (min-width: 640px) {
+    .gallery-stage,
+    .stage-root {
+      --floor-h: max(22vh, 150px);
+    }
+  }
+  /* 데스크톱(1280px 이상): 시안 C — 지평선을 낮게 */
+  @media (min-width: 1280px) {
+    .gallery-stage,
+    .stage-root {
+      --floor-h: max(11vh, 96px);
+    }
+  }
+  @keyframes cine-fade {
+    from {
+      opacity: var(--from, 0.3);
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes cine-fan-left {
+    from {
+      transform: rotate(-3.2deg);
+    }
+    to {
+      transform: rotate(2.6deg);
+    }
+  }
+  @keyframes cine-fan-right {
+    from {
+      transform: rotate(3deg);
+    }
+    to {
+      transform: rotate(-2.4deg);
+    }
+  }
+  /* 가운데 맞춤은 margin 으로 하고 키프레임에는 크기 기준 % 이동을 쓰지 않음 (컴포지터에서만 돌도록) */
+  @keyframes cine-burst {
+    from {
+      opacity: 0.72;
+      transform: scale(0.93);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+  @keyframes cine-core {
+    from {
+      opacity: 0.7;
+      transform: scaleX(0.82);
+    }
+    to {
+      opacity: 1;
+      transform: scaleX(1.08);
+    }
+  }
+  /* 11초에 한 번, 약 1.3초 동안 지평선을 따라 가로지르는 빛 (깜빡임이 아니라 이동, 최대 0.85) */
+  @keyframes cine-sweep {
+    0%,
+    80% {
+      opacity: 0;
+      transform: translateX(-40vw);
+    }
+    83% {
+      opacity: 0.85;
+    }
+    92% {
+      opacity: 0;
+      transform: translateX(120vw);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(120vw);
+    }
+  }
+  @keyframes cine-sparkle {
+    from {
+      opacity: 0.4;
+      transform: scale(0.62);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1.06);
+    }
+  }
+  .cine-sky {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: var(--floor-h);
+  }
+  .cine-fill {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  /* ① 밤하늘 */
+  .cine-nebula {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(36% 30% at 17% 24%, rgba(122, 92, 255, 0.17), transparent 70%),
+      radial-gradient(34% 30% at 82% 28%, rgba(64, 120, 255, 0.17), transparent 70%),
+      radial-gradient(26% 20% at 63% 10%, rgba(255, 111, 181, 0.07), transparent 70%),
+      radial-gradient(70% 45% at 50% 100%, rgba(60, 110, 255, 0.24), transparent 72%);
+  }
+  .cine-twinkle {
+    opacity: 0.7;
+  }
+  .cine-twinkle[data-anim] {
+    --from: 0.2;
+    will-change: opacity;
+    animation: cine-fade 3.6s ease-in-out infinite alternate;
+  }
+  .cine-twinkle[data-group='1'][data-anim] {
+    animation-duration: 4.9s;
+    animation-delay: -2.4s;
+  }
+  /* ② 빛 기둥 */
+  .cine-pillar {
+    position: absolute;
+    bottom: 0;
+    transform: translateX(-50%);
+    opacity: 0.75;
+    background: radial-gradient(50% 100% at 50% 100%, rgba(140, 185, 255, 0.36), rgba(90, 140, 255, 0.1) 45%, transparent 100%);
+  }
+  .cine-pillar[data-center] {
+    background: radial-gradient(50% 100% at 50% 100%, rgba(235, 243, 255, 0.42), rgba(120, 170, 255, 0.16) 40%, transparent 100%);
+  }
+  .cine-pillar-group {
+    position: absolute;
+    inset: 0;
+  }
+  .cine-pillar-group[data-anim] {
+    --from: 0.3;
+    will-change: opacity;
+    animation: cine-fade 5.6s ease-in-out infinite alternate;
+  }
+  .cine-pillar-group[data-group='1'][data-anim] {
+    animation-duration: 7.2s;
+    animation-delay: -3.1s;
+  }
+  /* ③ 빛의 날개 */
+  .cine-wings {
+    display: none;
+  }
+  @media (min-width: 640px) {
+    .cine-wings {
+      display: block;
+    }
+  }
+  .cine-wing {
+    position: absolute;
+    inset: 0;
+    opacity: 0.8;
+  }
+  .cine-wing-half[data-anim] {
+    --from: 0.3;
+    will-change: opacity;
+    animation: cine-fade 4.4s ease-in-out infinite alternate;
+  }
+  .cine-wing-half[data-half='1'][data-anim] {
+    animation-delay: -2.2s;
+  }
+  /* ④ 레이저: 켜질 때 지평선에서 뻗어 나감 (transform 전환), 이후 좌우가 반대로 천천히 쓸어 줌 */
+  .cine-fan-open {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 100%;
+    transform: scale(0.08);
+    transition: transform 1.8s cubic-bezier(0.16, 0.84, 0.24, 1) calc(var(--decor-order, 0) * 0.3s);
+  }
+  [data-stage-lit='true'] .cine-fan-open {
+    transform: scale(1);
+  }
+  .cine-fan {
+    transform-origin: 50% 100%;
+    opacity: 0.85;
+  }
+  @media (min-width: 640px) {
+    .cine-fan[data-anim] {
+      will-change: transform;
+      animation: cine-fan-left 13s ease-in-out infinite alternate;
+    }
+    .cine-fan[data-side='right'][data-anim] {
+      animation-name: cine-fan-right;
+      animation-duration: 15s;
+      animation-delay: -6s;
+    }
+  }
+  .cine-gold {
+    opacity: 0.95;
+  }
+  .cine-gold[data-anim] {
+    --from: 0.55;
+    will-change: opacity;
+    animation: cine-fade 3.8s ease-in-out infinite alternate;
+  }
+  /* ⑤ 지평선 */
+  .cine-horizon {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--floor-h);
+    height: 0;
+  }
+  .cine-horizon > span {
+    position: absolute;
+    top: 0;
+  }
+  .cine-horizon-haze {
+    left: 50%;
+    width: 96vw;
+    height: 120px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(50% 50% at 50% 50%, rgba(255, 128, 196, 0.2), rgba(80, 130, 255, 0.2) 42%, transparent 74%);
+  }
+  .cine-burst {
+    left: 50%;
+    width: 58vw;
+    height: 46vh;
+    margin: -23vh 0 0 -29vw;
+    background: radial-gradient(
+      50% 50% at 50% 50%,
+      rgba(255, 251, 238, 0.6) 0,
+      rgba(255, 214, 140, 0.3) 12%,
+      rgba(110, 150, 255, 0.16) 36%,
+      transparent 68%
+    );
+  }
+  .cine-burst[data-anim] {
+    will-change: transform, opacity;
+    animation: cine-burst 5.5s ease-in-out infinite alternate;
+  }
+  .cine-horizon-line {
+    left: 3%;
+    right: 3%;
+    height: 2px;
+    transform: translateY(-1px);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(110, 150, 255, 0.55) 16%,
+      rgba(255, 140, 200, 0.65) 33%,
+      #fff6dc 50%,
+      rgba(255, 140, 200, 0.65) 67%,
+      rgba(110, 150, 255, 0.55) 84%,
+      transparent
+    );
+    box-shadow: 0 0 14px 2px rgba(255, 214, 160, 0.35);
+  }
+  .cine-core-flare {
+    left: 50%;
+    width: 74vw;
+    height: 3px;
+    margin: -1.5px 0 0 -37vw;
+    background: linear-gradient(90deg, transparent, rgba(170, 205, 255, 0.35) 30%, rgba(235, 244, 255, 0.85) 48%, #fff 50%, rgba(235, 244, 255, 0.85) 52%, rgba(170, 205, 255, 0.35) 70%, transparent);
+  }
+  .cine-core-flare > span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 84px;
+    height: 84px;
+    transform: translate(-50%, -50%);
+    background:
+      radial-gradient(circle, #fff 0 7%, rgba(255, 236, 200, 0.6) 14%, transparent 42%),
+      linear-gradient(90deg, transparent 47%, rgba(255, 255, 255, 0.85) 50%, transparent 53%),
+      linear-gradient(0deg, transparent 47%, rgba(255, 255, 255, 0.85) 50%, transparent 53%);
+  }
+  .cine-core-flare[data-anim] {
+    will-change: transform, opacity;
+    animation: cine-core 4.2s ease-in-out infinite alternate;
+  }
+  .cine-sweep {
+    left: 0;
+    width: 34vw;
+    height: 80px;
+    margin-top: -40px;
+    opacity: 0;
+    background:
+      radial-gradient(50% 6% at 50% 50%, rgba(255, 255, 255, 0.95), transparent 100%),
+      radial-gradient(50% 50% at 50% 50%, rgba(220, 235, 255, 0.4), rgba(255, 200, 230, 0.12) 40%, transparent 70%);
+  }
+  .cine-sweep[data-anim] {
+    will-change: transform, opacity;
+    animation: cine-sweep 11s cubic-bezier(0.5, 0, 0.3, 1) -4s infinite;
+  }
+  /* ⑥ 렌즈 플레어 */
+  .cine-sparkles {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: var(--floor-h);
+  }
+  .cine-sparkle {
+    --sp-color: 255, 236, 245;
+    --sp-halo: 255, 120, 190;
+    position: absolute;
+    margin: calc(var(--sp-size) / -2) 0 0 calc(var(--sp-size) / -2);
+    background:
+      radial-gradient(circle, #fff 0 6%, rgba(var(--sp-color), 0.7) 12%, transparent 34%),
+      linear-gradient(90deg, transparent 47.5%, rgba(var(--sp-color), 0.9) 50%, transparent 52.5%),
+      linear-gradient(0deg, transparent 47.5%, rgba(var(--sp-color), 0.9) 50%, transparent 52.5%);
+  }
+  .cine-sparkle[data-hue='blue'] {
+    --sp-color: 225, 236, 255;
+    --sp-halo: 90, 140, 255;
+  }
+  .cine-sparkle[data-hue='gold'] {
+    --sp-color: 255, 240, 205;
+    --sp-halo: 230, 180, 90;
+  }
+  /* 아나모픽 가로줄 + 둥근 광륜 */
+  .cine-sparkle::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 520%;
+    height: 4%;
+    min-height: 2px;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(90deg, transparent, rgba(var(--sp-halo), 0.45) 35%, rgba(255, 255, 255, 0.9) 50%, rgba(var(--sp-halo), 0.45) 65%, transparent);
+  }
+  .cine-sparkle > span {
+    position: absolute;
+    inset: -60%;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(var(--sp-halo), 0.22), transparent 62%);
+  }
+  .cine-sparkle[data-anim] {
+    will-change: transform, opacity;
+    animation: cine-sparkle var(--sp-dur, 5s) ease-in-out var(--sp-delay, 0s) infinite alternate;
+  }
+  @media (max-width: 639.98px) {
+    .cine-sparkle:not([data-mobile]) {
+      display: none;
+    }
+  }
+  /* ⑦ 반짝이는 바닥 */
+  .cine-floor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--floor-h);
+  }
+  .cine-floor-reflect {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(28% 70% at 50% 0%, rgba(255, 240, 210, 0.24), rgba(255, 180, 120, 0.08) 42%, transparent 75%),
+      radial-gradient(62% 46% at 50% 0%, rgba(90, 140, 255, 0.2), transparent 80%);
+  }
+  .cine-glitter {
+    opacity: 0.75;
+  }
+  .cine-glitter[data-anim] {
+    --from: 0.25;
+    will-change: opacity;
+    animation: cine-fade 2.8s ease-in-out infinite alternate;
+  }
+  .cine-glitter[data-half='1'][data-anim] {
+    animation-duration: 3.7s;
+    animation-delay: -1.6s;
+  }
+
+  /* 모바일: 화면 전체 크기의 투명도 애니메이션(별 반짝임·바닥 반짝이·금빛 빔·빛 기둥 무리)은 정지 — 긴 세로 페이지 × 고배율에서
+     합성 비용이 큼(4x 스로틀 측정: 빛 기둥 무리만으로 60 → 약 50fps). 작은 요소(폭발광·코어 플레어·아나모픽 플래시·렌즈 플레어)는 움직임 */
+  @media (max-width: 639.98px) {
+    .cine-twinkle[data-anim],
+    .cine-glitter[data-anim],
+    .cine-gold[data-anim],
+    .cine-pillar-group[data-anim] {
+      animation: none;
+      will-change: auto;
+    }
+  }
+
+  /*
+   * 데스크톱(1280px 이상) 갈라 무대 — 시안 C (1024~1279px 는 태블릿과 같은 무대)
+   * 왼쪽 큰 제목 + 오른쪽 별자리 액자 · 밤하늘·빛의 날개·지평선 · 오로라·고리 행성·떠다니는 오브제·서치라이트·별똥별·카메라 플래시
+   * 이전 무대 요소(커튼·트러스·위쪽 서치라이트·트로피·아르데코·벽 별·바닥 격자·레이저 부채꼴·빛 기둥·폭발광)는 데스크톱에서 숨김
+   */
+  .gala-lg {
+    display: none;
+  }
+  .cine-sparkle {
+    left: var(--sp-x);
+    top: var(--sp-y);
+  }
+  @media (min-width: 1280px) {
+    .gala-lg {
+      display: block;
+      position: absolute;
+      inset: 0;
+    }
+    .cine-sparkle {
+      left: var(--sp-lx);
+      top: var(--sp-ly);
+    }
+    [data-decor='curtains'],
+    .stage-rig,
+    .stage-trophy,
+    [data-decor='deco-corners'],
+    .stage-deco-corner,
+    .stage-wall-stars,
+    .stage-floor-grid,
+    [data-decor='cine-lasers'],
+    [data-decor='cine-pillars'],
+    .cine-burst,
+    .gallery-beam,
+    .stage-molding {
+      display: none !important;
+    }
+    /* 빛의 날개를 조금 더 밝게 (시안 C 의 주인공 조명) */
+    .cine-wing {
+      opacity: 0.95;
+    }
+  }
+  @keyframes gala-aurora {
+    from {
+      opacity: 0.35;
+      transform: translateX(-4vw) scaleY(0.85);
+    }
+    to {
+      opacity: 0.85;
+      transform: translateX(4vw) scaleY(1.15);
+    }
+  }
+  @keyframes gala-float {
+    from {
+      transform: translate3d(0, -10px, 0) rotate(-8deg);
+    }
+    to {
+      transform: translate3d(0, 10px, 0) rotate(8deg);
+    }
+  }
+  @keyframes gala-planet {
+    from {
+      transform: translate3d(0, -7px, 0);
+    }
+    to {
+      transform: translate3d(0, 7px, 0);
+    }
+  }
+  @keyframes gala-sweep {
+    from {
+      transform: rotate(-30deg);
+    }
+    to {
+      transform: rotate(24deg);
+    }
+  }
+  /* 별똥별: 주기마다 약 0.8초 */
+  @keyframes gala-shoot {
+    0%,
+    95.5% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+    96.4% {
+      opacity: 0.6;
+    }
+    98.6% {
+      opacity: 0;
+      transform: translateX(38vw);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(38vw);
+    }
+  }
+  /* 카메라 플래시: 주기마다 약 0.25초 동안 작게 터짐 (작은 면적, 전체 약 1초에 1번) */
+  @keyframes gala-pop {
+    0%,
+    94.5% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    95.4% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    97.6%,
+    100% {
+      opacity: 0;
+      transform: scale(0.7);
+    }
+  }
+  @keyframes gala-node {
+    from {
+      opacity: 0.65;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+  }
+  .gala-aurora {
+    position: absolute;
+    border-radius: 50%;
+    rotate: var(--au-rot, 0deg);
+    opacity: 0.6;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(150, 110, 255, 0.24), rgba(150, 110, 255, 0.08) 45%, transparent 72%);
+  }
+  .gala-aurora[data-hue='teal'] {
+    background: radial-gradient(50% 50% at 50% 50%, rgba(80, 200, 235, 0.18), rgba(80, 200, 235, 0.06) 45%, transparent 72%);
+  }
+  .gala-aurora[data-hue='pink'] {
+    background: radial-gradient(50% 50% at 50% 50%, rgba(255, 120, 200, 0.17), rgba(255, 120, 200, 0.05) 45%, transparent 72%);
+  }
+  .gala-aurora[data-anim] {
+    will-change: transform, opacity;
+    animation: gala-aurora var(--au-dur, 30s) ease-in-out var(--au-delay, 0s) infinite alternate;
+  }
+  .gala-planet {
+    position: absolute;
+    right: 9%;
+    top: 4%;
+    width: 150px;
+    height: 150px;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 22px rgba(150, 130, 255, 0.45));
+  }
+  .gala-planet[data-anim] {
+    will-change: transform;
+    animation: gala-planet 12s ease-in-out infinite alternate;
+  }
+  .gala-orb {
+    position: absolute;
+    translate: -50% -50%;
+    opacity: 0.9;
+  }
+  .gala-orb > svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .gala-orb[data-kind='star'] {
+    filter: drop-shadow(0 0 8px rgba(255, 214, 140, 0.75));
+  }
+  .gala-orb[data-kind='diamond'] {
+    filter: drop-shadow(0 0 8px rgba(180, 210, 255, 0.7));
+  }
+  .gala-orb[data-kind='orb'] {
+    border-radius: 999px;
+    background: radial-gradient(circle at 34% 30%, #ffffff 0 8%, rgba(210, 225, 255, 0.9) 15%, rgba(120, 140, 255, 0.55) 46%, rgba(70, 60, 200, 0.35) 70%, transparent 72%);
+    box-shadow: 0 0 18px 2px rgba(150, 170, 255, 0.45);
+  }
+  .gala-orb[data-anim] {
+    will-change: transform;
+    animation: gala-float var(--ob-dur, 12s) ease-in-out var(--ob-delay, 0s) infinite alternate;
+  }
+  .gala-sweep {
+    position: absolute;
+    top: -12%;
+    left: 70%;
+    width: 1000px;
+    height: 135%;
+    translate: -50% 0;
+    transform-origin: 50% 0;
+    background: conic-gradient(
+      from 158deg at 50% 0%,
+      transparent 0deg,
+      rgba(220, 230, 255, 0.06) 12deg,
+      rgba(235, 240, 255, 0.12) 22deg,
+      rgba(220, 230, 255, 0.06) 32deg,
+      transparent 44deg
+    );
+  }
+  .gala-sweep[data-anim] {
+    will-change: transform;
+    animation: gala-sweep 19s ease-in-out -6s infinite alternate;
+  }
+  .gala-meteor {
+    position: absolute;
+    width: 170px;
+    height: 2px;
+    border-radius: 2px;
+    rotate: var(--mt-rot, 20deg);
+    transform-origin: 0 50%;
+    opacity: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 228, 244, 0.9));
+  }
+  .gala-meteor[data-anim] {
+    will-change: transform, opacity;
+    animation: gala-shoot var(--mt-dur, 30s) linear var(--mt-delay, 0s) infinite;
+  }
+  .gala-flash {
+    position: absolute;
+    translate: -50% -50%;
+    opacity: 0;
+    background:
+      radial-gradient(circle, #fff 0 6%, rgba(255, 255, 255, 0.75) 12%, rgba(210, 225, 255, 0.25) 30%, transparent 56%),
+      linear-gradient(90deg, transparent 48.5%, rgba(255, 255, 255, 0.9) 50%, transparent 51.5%),
+      linear-gradient(0deg, transparent 48.5%, rgba(255, 255, 255, 0.85) 50%, transparent 51.5%);
+  }
+  .gala-flash[data-anim] {
+    will-change: transform, opacity;
+    animation: gala-pop var(--fl-dur, 10s) linear var(--fl-delay, 0s) infinite;
+  }
+  /* 액자 별자리 (Frame · Constellation) */
+  .frame-halo {
+    background: radial-gradient(closest-side, rgba(170, 150, 255, 0.22), rgba(120, 110, 255, 0.08) 55%, transparent);
+  }
+  .frame-node {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: radial-gradient(circle, #fff 0 30%, #fff1c8 46%, rgba(255, 220, 150, 0.4) 70%, transparent 72%);
+    box-shadow:
+      0 0 0 6px rgba(255, 220, 150, 0.16),
+      0 0 16px 4px rgba(255, 214, 140, 0.45);
+    animation: gala-node 2.6s ease-in-out infinite alternate;
+  }
+  .group\/frame:nth-child(even) .frame-node {
+    animation-delay: -1.3s;
+  }
+  .constellation-spark {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 999px;
+    opacity: 0;
+    transform-origin: 5px 5px;
+    will-change: transform, opacity;
+    background: radial-gradient(circle, #fff 0 25%, rgba(255, 230, 170, 0.85) 45%, transparent 70%);
+    box-shadow: 0 0 12px 4px rgba(255, 214, 140, 0.45);
   }
 
   /* 금속 질감 — 액자·명패·버튼·강조에만 */
@@ -743,5 +1358,12 @@
   .stage-confetti,
   .stage-wall-stars {
     display: none !important;
+  }
+}
+
+/* 움직임 줄이기: 별 마디 고정 */
+@media (prefers-reduced-motion: reduce) {
+  .frame-node {
+    animation: none !important;
   }
 }

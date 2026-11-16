@@ -196,30 +196,11 @@ export function Truss() {
 }
 
 // ---------------------------------------------------------------------------
-// ④ 뒷벽 선버스트 + 아르데코 모서리 장식 + 벽의 큰 별·작은 별
+// ④ 아르데코 모서리 장식 + 벽의 큰 별·작은 별 (방사형 광선은 CinematicLights 의 레이저 부채꼴로 대체)
 // ---------------------------------------------------------------------------
-const SUNBURST_RAYS = Array.from({ length: 36 }, (_, i) => {
-  const a = (i * 10 * Math.PI) / 180;
-  const w = (1.3 * Math.PI) / 180; // 광선 반쪽 폭
-  const p = (ang: number) => `${(100 * Math.cos(ang)).toFixed(2)} ${(100 * Math.sin(ang)).toFixed(2)}`;
-  return `M0 0 L${p(a - w)} L${p(a + w)} Z`;
-}).join(' ');
-
-export function Sunburst() {
-  const reduce = useReducedMotion();
+export function ArtDecoCorners() {
   return (
-    <div className="stage-decor" data-decor="sunburst" style={layer(DECOR_ORDER.laurel)}>
-      {/* 광선 36개: 바깥으로 갈수록 흐려지는 방사형 채움 (mask 없이 한 번만 그리고 회전만 합성) */}
-      <svg className="stage-sunburst" viewBox="-100 -100 200 200" aria-hidden {...anim(reduce)}>
-        <defs>
-          <radialGradient id="sunburst-fade" cx="0" cy="0" r="100" gradientUnits="userSpaceOnUse">
-            <stop offset="0.12" stopColor="#dbe8ff" stopOpacity="0.065" />
-            <stop offset="0.55" stopColor="#dbe8ff" stopOpacity="0.035" />
-            <stop offset="1" stopColor="#dbe8ff" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <path d={SUNBURST_RAYS} fill="url(#sunburst-fade)" />
-      </svg>
+    <div className="stage-decor" data-decor="deco-corners" style={layer(DECOR_ORDER.laurel)}>
       {(['left', 'right'] as const).map((side) => (
         <svg key={side} className="stage-deco-corner" data-side={side} viewBox="0 0 120 120" aria-hidden>
           <GoldDefs id={`deco-${side}`} />
