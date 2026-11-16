@@ -21,10 +21,15 @@ interface Props {
   footer?: ReactNode;
 }
 
+/** 갤러리 아래 작은 안내 문구 */
+const ORDER_NOTE = '나열순서는 순위와 무관하며, 제안자 성명의 가나다 순으로 정렬하였습니다.';
+
 /** 명예의 전당 */
 export function Gallery({ title, subtitle, year, winners, opened, show, highlightId, onOpen, status, footer }: Props) {
   // 로딩·오류·빈 목록(status)이 아니고, 클릭해서 열 수 있는(공개된) 액자가 실제로 있을 때만 안내
   const showClickHint = !status && !!winners?.some((w) => w.is_revealed);
+  // 액자가 실제로 보일 때만 나열 순서 안내
+  const showOrderNote = !status && !!winners?.length;
   return (
     // 데스크톱(1280px 이상): 왼쪽 큰 제목 단 + 오른쪽 별자리 액자 (모바일·태블릿은 위 제목 + 아래 액자)
     <section aria-labelledby="gallery-title" className="gallery-stage relative isolate flex min-h-[100svh] flex-col overflow-hidden xl:flex-row">
@@ -112,7 +117,21 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
           ) : null)}
       </div>
 
-      {footer && <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center px-4 xl:hidden">{footer}</div>}
+      {/* 화면 아래: (데스크톱 외) 처음 화면으로 버튼 + 나열 순서 안내 */}
+      <div className="absolute inset-x-0 bottom-4 z-10 flex flex-col items-center gap-2.5 px-4 sm:bottom-5 xl:bottom-[max(18px,2.6vh)]">
+        {footer && <div className="flex justify-center xl:hidden">{footer}</div>}
+        {showOrderNote && (
+          <motion.p
+            className="max-w-[34rem] text-center text-[11px] leading-snug text-balance text-muted/90 sm:text-xs"
+            data-testid="order-note"
+            initial={{ opacity: 0 }}
+            animate={show ? { opacity: 1 } : undefined}
+            transition={{ duration: 0.9, delay: 0.5 }}
+          >
+            {ORDER_NOTE}
+          </motion.p>
+        )}
+      </div>
     </section>
   );
 }

@@ -60,4 +60,15 @@ describe('데스크톱 갈라 무대 (시안 C)', () => {
     expect(lis[0].className).toContain('xl:mt-');
     expect(lis[1].className).not.toContain('xl:mt-');
   });
+
+  it('나열 순서 안내: 액자가 보일 때만 화면 아래에 표시', () => {
+    const winners = [{ id: 'w1', display_order: 1, name: '가', dept: '팀', is_revealed: false as const }];
+    const base = { title: 't', subtitle: 's', year: 2026, opened: new Set<string>(), show: true, onOpen: () => {} };
+    const { getByTestId, queryByTestId, rerender } = render(<Gallery {...base} winners={winners} />);
+    expect(getByTestId('order-note').textContent).toBe('나열순서는 순위와 무관하며, 제안자 성명의 가나다 순으로 정렬하였습니다.');
+    rerender(<Gallery {...base} winners={winners} status={<p>불러오는 중</p>} />);
+    expect(queryByTestId('order-note')).toBeNull();
+    rerender(<Gallery {...base} winners={[]} />);
+    expect(queryByTestId('order-note')).toBeNull();
+  });
 });
