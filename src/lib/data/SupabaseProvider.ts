@@ -2,7 +2,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { AdminSession, AudioKind, DataProvider } from './DataProvider';
 import { buildBackup, validateBackup } from './backup';
 import { safeLocalStorage } from '../safeStorage';
+import { attachmentMime, fileExtension, validateAttachment } from '../attachment';
 import {
+  MAX_ATTACHMENT_BYTES,
   type AdminSettings,
   type PresentationEvent,
   type PublicSettings,
@@ -14,6 +16,7 @@ import {
 
 const PHOTO_BUCKET = 'winner-photos';
 const AUDIO_BUCKET = 'site-audio';
+const FILE_BUCKET = 'winner-files';
 const SETTINGS_COLS =
   'event_title,event_subtitle,year,intro_line,intro_enabled,intro_length,intro_mode,sound_default,accent_color,fanfare_url,bgm_url,music_source,music_volume';
 
@@ -37,6 +40,8 @@ export function translateError(e: unknown): Error {
     return new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.');
   if (/exceeded the maximum allowed size|Payload too large/i.test(msg)) return new Error('파일 용량이 너무 큽니다.');
   if (/mime type .* is not supported|invalid_mime_type/i.test(msg)) return new Error('허용되지 않는 파일 형식입니다.');
+  if (/Bucket not found|attachment_(url|name)/i.test(msg))
+    return new Error('첨부 파일 기능이 아직 DB에 적용되지 않았습니다. Supabase SQL Editor에서 마이그레이션 10번을 실행해 주세요.');
   if (err.code === '42501' || /permission denied|row-level security/i.test(msg))
     return new Error('권한이 없습니다. 관리자 계정으로 로그인했는지 확인해 주세요.');
   if (/[가-힣]/.test(msg)) return new Error(msg); // SQL 함수가 보낸 한국어 메시지
@@ -171,10 +176,12 @@ export class SupabaseProvider implements DataProvider {
   async saveWinner(input: WinnerInput): Promise<Winner> {
     const { id, ...fields } = input;
     if (id) {
-      const { data: prev } = await this.sb.from('winners').select('photo_url').eq('id', id).maybeSingle();
+      const { data: prev } = await this.sb.from('winners').select('photo_url,attachment_url').eq('id', id).maybeSingle();
       const { data, error } = await this.sb.from('winners').update(fields).eq('id', id).select().single();
       if (error) throw translateError(error);
       if (prev?.photo_url && prev.photo_url !== fields.photo_url) await this.removeFile(prev.photo_url, PHOTO_BUCKET);
+      if (prev?.attachment_url && prev.attachment_url !== fields.attachment_url)
+        await this.removeFile(prev.attachment_url, FILE_BUCKET);
       return data as Winner;
     }
     const { data, error } = await this.sb.from('winners').insert(fields).select().single();
@@ -183,9 +190,10 @@ export class SupabaseProvider implements DataProvider {
   }
 
   async deleteWinner(id: string) {
-    const { data, error } = await this.sb.from('winners').delete().eq('id', id).select('photo_url').maybeSingle();
+    const { data, error } = await this.sb.from('winners').delete().eq('id', id).select('photo_url,attachment_url').maybeSingle();
     if (error) throw translateError(error);
     await this.removeFile(data?.photo_url ?? null, PHOTO_BUCKET);
+    await this.removeFile(data?.attachment_url ?? null, FILE_BUCKET);
     const rest = await this.listWinners();
     await this.reorderWinners(rest.map((w) => w.id));
   }
@@ -215,6 +223,18 @@ export class SupabaseProvider implements DataProvider {
       .upload(path, file, { contentType: file.type || 'audio/mpeg', cacheControl: '31536000', upsert: false });
     if (error) throw translateError(error);
     return this.sb.storage.from(AUDIO_BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+
+  async uploadAttachment(file: File) {
+    const problem = validateAttachment(file, MAX_ATTACHMENT_BYTES);
+    if (problem) throw new Error(problem);
+    // 저장 파일명은 UUID(한글·공백 경로 문제 방지). 원래 이름은 winners.attachment_name 에 저장
+    const path = `${crypto.randomUUID()}.${fileExtension(file.name)}`;
+    const { error } = await this.sb.storage
+      .from(FILE_BUCKET)
+      .upload(path, file, { contentType: attachmentMime(file.name)!, cacheControl: '31536000', upsert: false });
+    if (error) throw translateError(error);
+    return this.sb.storage.from(FILE_BUCKET).getPublicUrl(path).data.publicUrl;
   }
 
   async getAdminSettings(): Promise<AdminSettings> {

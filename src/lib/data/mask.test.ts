@@ -25,6 +25,19 @@ describe('공개 전 데이터 마스킹', () => {
     expect(shown).not.toHaveProperty('created_at');
   });
 
+  it('첨부 파일은 공개된 사람만, 공개 전이면 주소가 내려가지 않음', () => {
+    const withFile = { ...base, attachment_url: 'https://x.supabase.co/storage/v1/object/public/winner-files/a.pdf', attachment_name: '보고서.pdf' };
+    expect(JSON.stringify(toPublicWinner({ ...withFile, is_revealed: false }))).not.toContain('winner-files');
+    const shown = toPublicWinner({ ...withFile, is_revealed: true });
+    expect(shown).toMatchObject({ attachment_url: withFile.attachment_url, attachment_name: '보고서.pdf' });
+  });
+
+  it('이전 데모 데이터(첨부 항목 없음)도 첨부 없음으로', () => {
+    const { attachment_url: _u, attachment_name: _n, ...old } = base;
+    const shown = toPublicWinner({ ...(old as Winner), is_revealed: true });
+    expect(shown).toMatchObject({ attachment_url: null, attachment_name: null });
+  });
+
   it('순서대로 정렬', () => {
     const list = toPublicWinners([
       { ...base, id: 'b', display_order: 2 },

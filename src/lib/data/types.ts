@@ -11,6 +11,10 @@ export interface Winner {
   actions: string;
   to_be: string;
   reflection: string;
+  /** 첨부 파일 공개 URL (없으면 null). attachment_name 과 함께 비어 있거나 함께 채워짐 */
+  attachment_url: string | null;
+  /** 다운로드할 때 쓸 원래 파일 이름 */
+  attachment_name: string | null;
   is_revealed: boolean;
   created_at: string;
 }
@@ -39,6 +43,8 @@ export interface RevealedWinner {
   actions: string;
   to_be: string;
   reflection: string;
+  attachment_url: string | null;
+  attachment_name: string | null;
   is_revealed: true;
 }
 
@@ -87,4 +93,7 @@ export interface AwardsBackup {
 }
 
 export const MAX_WINNERS = 10;
+/** 첨부 파일 최대 용량 (Supabase 모드). 데모 모드는 브라우저 저장 공간 때문에 더 작음 */
+export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+export const DEMO_MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 export const RECOMMENDED_STORY_LENGTH = 400;

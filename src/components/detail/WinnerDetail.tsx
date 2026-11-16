@@ -1,5 +1,9 @@
+import { Download } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { buttonVariants } from '@/components/ui/button-variants';
+import { attachmentLink } from '@/lib/attachment';
 import type { RevealedWinner } from '@/lib/data/types';
+import { cn } from '@/lib/utils';
 import { DevelopingPhoto } from './DevelopingPhoto';
 import { ReflectionCard, StoryFlow } from './StoryBlock';
 
@@ -55,8 +59,31 @@ export function WinnerDetail({ winner, compact = false, TitleTag = 'h2' }: { win
         <motion.div key={`flow-${winner.id}`} {...enter(1)}>
           <StoryFlow as_is={winner.as_is} actions={winner.actions} to_be={winner.to_be} />
           <ReflectionCard text={winner.reflection} name={winner.name} />
+          <AttachmentButton url={winner.attachment_url} name={winner.attachment_name} />
         </motion.div>
       </div>
+    </div>
+  );
+}
+
+/** 상세 내용 맨 아래: 관리자가 첨부한 파일 받기 (첨부가 없으면 아무것도 그리지 않음) */
+function AttachmentButton({ url, name }: { url: string | null | undefined; name: string | null | undefined }) {
+  const link = attachmentLink(url, name);
+  if (!link) return null;
+  return (
+    <div className="mt-12 flex flex-col items-center gap-2 border-t border-line/70 pt-10">
+      <a
+        href={link.href}
+        download={link.download}
+        target={link.newTab ? '_blank' : undefined}
+        rel={link.newTab ? 'noopener noreferrer' : undefined}
+        className={cn(buttonVariants({ variant: 'primary', size: 'lg' }), 'rounded-full px-8')}
+        aria-label={`상세 내용 확인하기 (${name || '첨부파일'} 내려받기)`}
+        data-testid="attachment-download"
+      >
+        <Download aria-hidden /> 상세 내용 확인하기
+      </a>
+      <p className="max-w-full truncate text-xs text-muted">{name || '첨부파일'}</p>
     </div>
   );
 }
