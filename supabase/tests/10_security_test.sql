@@ -264,3 +264,33 @@ do $$ declare j jsonb := public.get_public_awards(); begin
 end $$;
 reset role;
 select 'MIGRATION 10 TESTS PASSED' as result;
+
+-- ---------- 11) 파트 표시/숨김 ----------
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
+select public.restore_awards($j${
+  "settings": {"event_title":"t","event_subtitle":"s","intro_line":"l","accent_color":"#d9b45a","intro_length":"short","year":2026},
+  "winners": [
+    {"name":"숨김","dept":"A","topic":"T1","as_is":"HIDDEN-ASIS","actions":"b","to_be":"c","reflection":"HIDDEN-REFLECTION","is_revealed":true,
+     "hidden_sections":["reflection","as_is","as_is"]},
+    {"name":"이전백업","dept":"B","topic":"T2","as_is":"a","actions":"b","to_be":"c","reflection":"d","is_revealed":true}
+  ]}$j$::jsonb);
+select pg_temp.expect_error($q$update public.winners set hidden_sections = array['photo'] where name = '숨김'$q$, 'winners_hidden_sections_check');
+select pg_temp.expect_error($q$select public.restore_awards('{"settings":{"event_title":"t","event_subtitle":"s","intro_line":"l","accent_color":"#d9b45a","intro_length":"short","year":2026},"winners":[{"name":"x","dept":"","topic":"","as_is":"","actions":"","to_be":"","reflection":"","hidden_sections":["nope"]}]}'::jsonb)$q$, '숨김 파트');
+reset role;
+do $$ begin
+  if (select count(*) from public.winners) <> 2 then raise exception 'bad backup should not delete data'; end if;
+  if (select hidden_sections from public.winners where name = '숨김') <> array['as_is', 'reflection'] then raise exception 'hidden_sections should be deduped/sorted'; end if;
+  if (select as_is from public.winners where name = '숨김') <> 'HIDDEN-ASIS' then raise exception 'hidden content should be kept for admin'; end if;
+  if (select hidden_sections from public.winners where name = '이전백업') <> '{}'::text[] then raise exception 'old backup should show all'; end if;
+end $$;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare j jsonb := public.get_public_awards(); begin
+  if j::text like '%HIDDEN-%' then raise exception 'hidden section content leaked'; end if;
+  if (j -> 0 ->> 'actions') <> 'b' then raise exception 'visible section should stay'; end if;
+  if (j -> 0 -> 'hidden_sections') <> '["as_is", "reflection"]'::jsonb then raise exception 'hidden_sections should be sent'; end if;
+  if (j -> 1 -> 'hidden_sections') <> '[]'::jsonb then raise exception 'default should be empty'; end if;
+end $$;
+reset role;
+select 'MIGRATION 11 TESTS PASSED' as result;

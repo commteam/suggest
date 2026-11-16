@@ -1,4 +1,4 @@
-import type { HiddenWinner, PublicWinner, Winner } from './types';
+import { normalizeHiddenSections, type HiddenWinner, type PublicWinner, type Winner } from './types';
 
 /**
  * 공개 전 데이터 마스킹.
@@ -16,6 +16,9 @@ export function toPublicWinner(w: Winner): PublicWinner {
     };
     return hidden;
   }
+  // 숨긴 파트는 내용을 내려보내지 않음 (SQL get_public_awards 와 같은 규칙)
+  const hiddenSections = normalizeHiddenSections(w.hidden_sections);
+  const text = (k: (typeof hiddenSections)[number]) => (hiddenSections.includes(k) ? '' : w[k]);
   return {
     id: w.id,
     display_order: w.display_order,
@@ -24,12 +27,13 @@ export function toPublicWinner(w: Winner): PublicWinner {
     position: w.position,
     photo_url: w.photo_url,
     topic: w.topic,
-    as_is: w.as_is,
-    actions: w.actions,
-    to_be: w.to_be,
-    reflection: w.reflection,
+    as_is: text('as_is'),
+    actions: text('actions'),
+    to_be: text('to_be'),
+    reflection: text('reflection'),
     attachment_url: w.attachment_url ?? null,
     attachment_name: w.attachment_url ? w.attachment_name || '첨부파일' : null,
+    hidden_sections: hiddenSections,
     is_revealed: true,
   };
 }

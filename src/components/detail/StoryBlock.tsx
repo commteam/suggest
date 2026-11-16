@@ -1,4 +1,5 @@
 import { Quote } from 'lucide-react';
+import type { StorySection } from '@/lib/data/types';
 import { STORY_PARTS } from './storyParts';
 import { StoryText } from './StoryText';
 
@@ -38,12 +39,24 @@ export function FlowConnector() {
   );
 }
 
-/** AS-IS → 추진 내용 → TO-BE */
-export function StoryFlow({ as_is, actions, to_be }: { as_is: string; actions: string; to_be: string }) {
+/** AS-IS → 추진 내용 → TO-BE (숨긴 파트는 빼고, 남은 파트로 번호를 다시 매김) */
+export function StoryFlow({
+  as_is,
+  actions,
+  to_be,
+  hidden = [],
+}: {
+  as_is: string;
+  actions: string;
+  to_be: string;
+  hidden?: readonly StorySection[];
+}) {
   const texts = { as_is, actions, to_be };
+  const parts = STORY_PARTS.filter((p) => !hidden.includes(p.key));
+  if (parts.length === 0) return null;
   return (
     <div>
-      {STORY_PARTS.map((p, i) => (
+      {parts.map((p, i) => (
         <div key={p.key}>
           {i > 0 && <FlowConnector />}
           <StoryBlock eyebrow={p.eyebrow} label={p.label} text={texts[p.key]} step={i + 1} />
@@ -54,9 +67,9 @@ export function StoryFlow({ as_is, actions, to_be }: { as_is: string; actions: s
 }
 
 /** 진행 소감 — 인용문 마무리 카드 */
-export function ReflectionCard({ text, name }: { text: string; name: string }) {
+export function ReflectionCard({ text, name, first = false }: { text: string; name: string; first?: boolean }) {
   return (
-    <figure className="card-blue relative mt-10 overflow-hidden rounded-xl px-6 pt-7 pb-7 sm:px-10 sm:pt-8" aria-label="진행 소감">
+    <figure className={`card-blue relative ${first ? '' : 'mt-10 '}overflow-hidden rounded-xl px-6 pt-7 pb-7 sm:px-10 sm:pt-8`} aria-label="진행 소감">
       <p className="mb-4 flex items-baseline gap-3">
         <span className="eyebrow text-xs font-semibold !tracking-[0.22em] sm:text-sm">REFLECTION</span>
         <span className="text-base font-bold text-ink sm:text-lg">진행 소감</span>

@@ -9,7 +9,13 @@ import { Card } from '@/components/ui/card';
 import { Input, Label, Textarea } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { provider } from '@/lib/data/provider';
-import { MAX_WINNERS, RECOMMENDED_STORY_LENGTH, type RevealedWinner, type WinnerInput } from '@/lib/data/types';
+import {
+  MAX_WINNERS,
+  RECOMMENDED_STORY_LENGTH,
+  normalizeHiddenSections,
+  type RevealedWinner,
+  type WinnerInput,
+} from '@/lib/data/types';
 import { errorMessage } from '@/lib/errors';
 import { countChars } from '@/lib/text/parseStory';
 import { cn } from '@/lib/utils';
@@ -29,6 +35,7 @@ const EMPTY: WinnerInput = {
   reflection: '',
   attachment_url: null,
   attachment_name: null,
+  hidden_sections: [],
   is_revealed: false,
 };
 
@@ -39,19 +46,45 @@ const STORY_FIELDS = [
   { key: 'reflection', label: '진행 소감' },
 ] as const;
 
-function StoryField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function StoryField({
+  label,
+  value,
+  onChange,
+  visible,
+  onVisibleChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  visible: boolean;
+  onVisibleChange: (v: boolean) => void;
+}) {
   const id = useId();
   const n = countChars(value);
   const over = n > RECOMMENDED_STORY_LENGTH;
   return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <Label htmlFor={id}>{label}</Label>
-        <span id={`${id}-count`} className={cn('text-xs tabular-nums', over ? 'text-[#ffd9a8]' : 'text-muted')} aria-live="polite">
-          {n} / 권장 {RECOMMENDED_STORY_LENGTH}자
-        </span>
+    <div data-testid="story-field" data-section-visible={visible}>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <Label htmlFor={id} className={cn('mb-0', !visible && 'text-muted line-through decoration-muted/60')}>
+          {label}
+        </Label>
+        <div className="ml-auto flex items-center gap-3">
+          <span id={`${id}-count`} className={cn('text-xs tabular-nums', over ? 'text-[#ffd9a8]' : 'text-muted')} aria-live="polite">
+            {n} / 권장 {RECOMMENDED_STORY_LENGTH}자
+          </span>
+          <label className="flex items-center gap-2 text-xs font-bold text-[#c9d4e8]">
+            <Switch checked={visible} onCheckedChange={onVisibleChange} aria-label={`${label} 공개 화면에 표시`} />
+            <span className="w-7">{visible ? '표시' : '숨김'}</span>
+          </label>
+        </div>
       </div>
+      {!visible && (
+        <p className="mt-1.5 rounded-md border border-line bg-[#0b1530] px-3 py-1.5 text-xs text-muted" role="note">
+          공개 화면에 이 파트를 표시하지 않습니다. 입력한 내용은 지워지지 않고 보관됩니다.
+        </p>
+      )}
       <Textarea
+        className={cn('mt-1.5', !visible && 'opacity-55')}
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -91,7 +124,7 @@ export default function WinnerEditor() {
         if (!w) setLoadError('해당 우수자를 찾을 수 없습니다. 삭제되었을 수 있습니다.');
         else {
           const { created_at: _c, ...rest } = w;
-          setForm(rest);
+          setForm({ ...rest, hidden_sections: normalizeHiddenSections(rest.hidden_sections) });
         }
       })
       .catch((e: unknown) => alive && setLoadError(errorMessage(e)));
@@ -171,6 +204,7 @@ export default function WinnerEditor() {
     reflection: form.reflection,
     attachment_url: form.attachment_url,
     attachment_name: form.attachment_name,
+    hidden_sections: form.hidden_sections,
     is_revealed: true,
   };
 
@@ -243,14 +277,29 @@ export default function WinnerEditor() {
           </Card>
 
           <Card className="space-y-5">
-            <h2 className="text-lg font-bold">제안 내용</h2>
+            <div>
+              <h2 className="text-lg font-bold">제안 내용</h2>
+              <p className="mt-1 text-sm text-muted">각 파트 오른쪽 스위치로 공개 화면에 표시할지 정합니다. 숨긴 파트는 상세 화면에서 빠지고 번호가 다시 매겨집니다.</p>
+            </div>
             <div>
               <Label htmlFor="f-topic">제안 주제 *</Label>
               <Input id="f-topic" value={form.topic} maxLength={200} onChange={(e) => set('topic', e.target.value)} aria-invalid={!!errors.topic} aria-describedby="err-topic" />
               {fieldErr('topic')}
             </div>
             {STORY_FIELDS.map((f) => (
-              <StoryField key={f.key} label={f.label} value={form[f.key]} onChange={(v) => set(f.key, v)} />
+              <StoryField
+                key={f.key}
+                label={f.label}
+                value={form[f.key]}
+                onChange={(v) => set(f.key, v)}
+                visible={!form.hidden_sections.includes(f.key)}
+                onVisibleChange={(show) =>
+                  set(
+                    'hidden_sections',
+                    normalizeHiddenSections(show ? form.hidden_sections.filter((k) => k !== f.key) : [...form.hidden_sections, f.key]),
+                  )
+                }
+              />
             ))}
           </Card>
 

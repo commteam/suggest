@@ -359,6 +359,14 @@ async function run(browser, key, opts, portrait) {
     src,
   );
   assert(dims[1] <= 1200 && Math.abs(dims[0] / dims[1] - 0.75) < 0.01, `3:4, 최대 1200px (${dims})`);
+  // 파트 숨김: AS-IS 와 진행 소감을 끔 (내용은 보관)
+  await adm.getByRole('switch', { name: 'AS-IS · 개선 전 상황 공개 화면에 표시' }).click();
+  await adm.getByRole('switch', { name: '진행 소감 공개 화면에 표시' }).click();
+  assert((await adm.locator('[data-section-visible="false"]').count()) === 2, '두 파트가 숨김 상태');
+  assert((await adm.getByText('공개 화면에 이 파트를 표시하지 않습니다').count()) === 2, '숨김 안내 표시');
+  assert((await adm.getByLabel('진행 소감', { exact: true }).inputValue()).length > 0, '숨겨도 입력 내용 유지');
+  await adm.locator('[data-section-visible="false"]').first().scrollIntoViewIfNeeded();
+  await snap(adm, key, 'admin-hide-sections');
   // 첨부 파일: 허용 안 된 형식은 거부, PDF 는 업로드
   const attachInput = adm.getByLabel('첨부 파일 선택');
   await attachInput.setInputFiles({ name: 'virus.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('MZ') });
@@ -384,14 +392,23 @@ async function run(browser, key, opts, portrait) {
   assert(await pub.getByRole('dialog').locator('img[alt="김하늘 증명사진"]').isVisible(), '공개 화면에 새 사진');
   await pub.waitForTimeout(2600);
   await snap(pub, key, 'public-updated');
+  // 숨긴 파트(AS-IS·진행 소감)는 공개 화면에 없고, 남은 파트는 01·02 로 다시 번호
+  {
+    const d = pub.getByRole('dialog');
+    assert((await d.getByRole('article', { name: '개선 전 상황' }).count()) === 0, 'AS-IS 숨김');
+    assert((await d.getByRole('figure', { name: '진행 소감' }).count()) === 0, '진행 소감 숨김');
+    assert((await d.getByText('작은 불편도 기록해 두면').count()) === 0, '숨긴 소감 내용 없음');
+    assert(await d.getByRole('article', { name: '추진 내용' }).getByText('01').isVisible(), '추진 내용이 01');
+    assert(await d.getByRole('article', { name: '개선 후 모습' }).getByText('02').isVisible(), 'TO-BE 가 02');
+  }
   // 상세 맨 아래 "상세 내용 확인하기" → 원래 이름으로 다운로드
   const dlBtn = pub.getByRole('dialog').getByTestId('attachment-download');
   await dlBtn.scrollIntoViewIfNeeded();
   await pub.waitForTimeout(400);
   assert((await dlBtn.innerText()).includes('상세 내용 확인하기'), '버튼 문구');
-  const lastStory = await pub.getByRole('dialog').getByText('REFLECTION', { exact: false }).first().boundingBox();
+  const lastStory = await pub.getByRole('dialog').getByRole('article', { name: '개선 후 모습' }).boundingBox();
   const btnBox = await dlBtn.boundingBox();
-  assert(btnBox && lastStory && btnBox.y > lastStory.y, '버튼은 진행 소감보다 아래(맨 하단)');
+  assert(btnBox && lastStory && btnBox.y > lastStory.y, '버튼은 마지막 파트보다 아래(맨 하단)');
   await snap(pub, key, 'public-attachment');
   const [download] = await Promise.all([pub.waitForEvent('download'), dlBtn.click()]);
   assert(download.suggestedFilename() === '추진 보고서.pdf', `다운로드 파일 이름 (${download.suggestedFilename()})`);

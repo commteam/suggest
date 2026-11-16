@@ -1,3 +1,13 @@
+/** 상세 화면의 네 파트 */
+export type StorySection = 'as_is' | 'actions' | 'to_be' | 'reflection';
+export const STORY_SECTIONS: readonly StorySection[] = ['as_is', 'actions', 'to_be', 'reflection'];
+
+/** 숨김 목록 정리: 알려진 값만, 중복 없이, 정해진 순서로 (이전 데이터처럼 없으면 빈 배열 = 모두 표시) */
+export function normalizeHiddenSections(v: unknown): StorySection[] {
+  if (!Array.isArray(v)) return [];
+  return STORY_SECTIONS.filter((s) => v.includes(s));
+}
+
 /** 관리자용 전체 레코드 (DB winners 테이블과 1:1) */
 export interface Winner {
   id: string;
@@ -15,6 +25,8 @@ export interface Winner {
   attachment_url: string | null;
   /** 다운로드할 때 쓸 원래 파일 이름 */
   attachment_name: string | null;
+  /** 공개 화면에서 숨길 파트 (빈 배열 = 모두 표시) */
+  hidden_sections: StorySection[];
   is_revealed: boolean;
   created_at: string;
 }
@@ -45,6 +57,8 @@ export interface RevealedWinner {
   reflection: string;
   attachment_url: string | null;
   attachment_name: string | null;
+  /** 숨긴 파트는 내용이 빈 문자열로 내려옴 */
+  hidden_sections: StorySection[];
   is_revealed: true;
 }
 
