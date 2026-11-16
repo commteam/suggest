@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { PublicWinner } from '@/lib/data/types';
 import { Frame } from './Frame';
 import { Silhouette } from './Silhouette';
+import { Laurel } from './StageDecor';
 import { WallBackdrop } from './WallBackdrop';
 
 interface Props {
@@ -25,7 +26,9 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
   return (
     <section aria-labelledby="gallery-title" className="relative isolate flex min-h-[100svh] flex-col overflow-hidden">
       <WallBackdrop lit={show} />
-      <header className="relative z-10 px-6 pt-16 text-center sm:pt-14">
+      <header className="relative z-10 px-6 pt-14 text-center sm:pt-14">
+        {/* 모바일: 제목 위 작은 월계관 하나 */}
+        <Laurel side="crest" lit={show} className="mx-auto mb-1 block h-6 w-14 sm:hidden" />
         <motion.p
           className="eyebrow text-[0.7rem] sm:text-sm"
           initial={{ opacity: 0, y: 10 }}
@@ -36,12 +39,15 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
         </motion.p>
         <motion.h1
           id="gallery-title"
-          className="mt-3 text-[2rem] leading-tight font-extrabold tracking-[0.04em] sm:text-5xl"
+          className="relative mx-auto mt-3 w-fit text-[2rem] leading-tight font-extrabold tracking-[0.04em] sm:text-5xl"
           initial={{ opacity: 0, y: 14 }}
           animate={show ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.9, delay: 0.1 }}
         >
+          {/* 제목 양옆 월계관 (태블릿 이상) */}
+          <Laurel side="left" lit={show} className="absolute top-1/2 right-full mr-4 hidden h-[78px] w-12 -translate-y-1/2 sm:block lg:mr-6" />
           <span className="metal-text">명예의 전당</span>
+          <Laurel side="right" lit={show} className="absolute top-1/2 left-full ml-4 hidden h-[78px] w-12 -translate-y-1/2 sm:block lg:ml-6" />
         </motion.h1>
         <motion.p
           className="mt-3 text-sm text-muted sm:text-base"
@@ -65,10 +71,11 @@ export function Gallery({ title, subtitle, year, winners, opened, show, highligh
         )}
       </header>
 
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 pt-20 pb-[150px] sm:px-8 sm:pt-24 sm:pb-[calc(16vh+56px)]">
+      {/* 아래쪽 여백: 바닥 무대(22vh)가 보이도록 남기고, 액자 묶음은 화면 세로 중앙보다 약간 위에 */}
+      <div className="relative z-10 flex flex-1 items-center justify-center px-6 pt-16 pb-[150px] sm:px-[7vw] sm:pt-16 lg:px-[11vw] sm:pb-[calc(22vh+64px)]">
         {status ??
           (winners && winners.length > 0 ? (
-            <ul className="flex w-full max-w-[1200px] list-none flex-wrap justify-center gap-x-6 gap-y-20 sm:gap-x-9 sm:gap-y-20">
+            <ul className="flex w-full max-w-[1200px] list-none flex-wrap justify-center gap-x-6 gap-y-16 sm:gap-x-9 sm:gap-y-16">
               {winners.map((w, i) => (
                 <Frame
                   key={w.id}
@@ -95,11 +102,11 @@ export function GallerySkeleton({ count = 5 }: { count?: number }) {
     <div
       role="status"
       aria-label="우수자 정보를 불러오는 중"
-      className="flex w-full max-w-[1200px] flex-wrap justify-center gap-x-6 gap-y-20 sm:gap-x-9 sm:gap-y-20"
+      className="flex w-full max-w-[1200px] flex-wrap justify-center gap-x-6 gap-y-16 sm:gap-x-9 sm:gap-y-16"
     >
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="w-[calc(50%-0.75rem)] max-w-[190px] sm:w-[174px] lg:w-[180px]">
-          <div className="rounded-[4px] bg-[#1a2a52] p-[9px] opacity-60">
+        <div key={i} className="w-[calc(50%-0.75rem)] max-w-[165px] sm:w-[150px] lg:w-[152px]">
+          <div className="rounded-[4px] bg-[#1a2a52] p-[8px] opacity-60">
             <div className="aspect-[3/4]">
               <Silhouette pulse />
             </div>

@@ -15,7 +15,9 @@ describe('갤러리 무대 배경', () => {
     const floor = container.querySelector('[data-floor]')!;
     expect(floor).not.toBeNull();
     expect(container.querySelectorAll('[class*="border"]')).toHaveLength(0); // 예전 패널은 border 박스 5개
-    expect(floor.querySelectorAll('div').length).toBeLessThanOrEqual(3);
+    // 바닥은 그라데이션 층 + 원근 격자 SVG + 빛 웅덩이 + 광택선뿐 (네모 도형 없음)
+    expect(floor.querySelectorAll('div').length).toBeLessThanOrEqual(4);
+    expect(floor.querySelectorAll('rect')).toHaveLength(0);
   });
 
   it('반복 벽지 무늬(다마스크·세로 줄무늬) 없음', () => {

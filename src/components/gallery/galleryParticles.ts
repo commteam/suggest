@@ -17,7 +17,7 @@ export interface StarParticle {
 }
 
 /** 시드 고정 난수 (매번 같은 배치) */
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   return () => {
     seed |= 0;
     seed = (seed + 0x6d2b79f5) | 0;

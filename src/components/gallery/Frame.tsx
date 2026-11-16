@@ -31,7 +31,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
   return (
     <motion.li
       data-frame-id={winner.id}
-      className="group/frame relative w-[calc(50%-0.75rem)] max-w-[190px] sm:w-[174px] lg:w-[180px]"
+      className="group/frame relative w-[calc(50%-0.75rem)] max-w-[165px] sm:w-[150px] lg:w-[152px]"
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 60, scale: 0.92 }}
       animate={show ? { opacity: 1, y: 0, scale: 1 } : undefined}
       transition={{ delay: reduce ? 0 : 0.25 + (index * FRAME_STAGGER_MS) / 1000, duration: reduce ? 0.3 : 0.9, ease: [0.2, 0.8, 0.2, 1] }}
@@ -40,7 +40,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
       <div
         aria-hidden
         className={cn(
-          'pointer-events-none absolute -top-28 left-1/2 h-[calc(100%+7rem)] w-[150%] -translate-x-1/2 transition-opacity duration-500',
+          'pointer-events-none absolute -top-24 left-1/2 h-[calc(100%+6rem)] w-[150%] -translate-x-1/2 transition-opacity duration-500',
           highlight ? 'opacity-100' : 'opacity-55',
           'group-hover/frame:opacity-100',
         )}
@@ -51,7 +51,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
         }}
       />
       {/* 와이어 */}
-      <svg aria-hidden className="absolute -top-14 left-1/2 h-14 w-28 -translate-x-1/2" viewBox="0 0 112 56">
+      <svg aria-hidden className="absolute -top-12 left-1/2 h-12 w-24 -translate-x-1/2" viewBox="0 0 112 56">
         <path d="M56 6 L18 56 M56 6 L94 56" stroke="#8a95ad" strokeWidth="0.9" fill="none" opacity="0.7" />
         <circle cx="56" cy="5" r="3.4" fill="var(--c-accent)" />
         <circle cx="55" cy="4" r="1.2" fill="#fff" opacity="0.6" />
@@ -79,7 +79,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
         {/* 액자 */}
         <span
           className={cn(
-            'relative block rounded-[4px] p-[7px] transition-shadow duration-500 sm:p-[9px]',
+            'relative block rounded-[4px] p-[6px] transition-shadow duration-500 sm:p-[8px]',
             'shadow-[0_26px_40px_-8px_rgba(0,0,0,0.75),0_8px_14px_rgba(0,0,0,0.5)]',
             'group-hover:shadow-[0_34px_50px_-8px_rgba(0,0,0,0.8),0_0_32px_color-mix(in_oklab,var(--c-accent)_45%,transparent)]',
             highlight && 'shadow-[0_0_48px_color-mix(in_oklab,var(--c-accent)_60%,transparent)]',
@@ -93,7 +93,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
               boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
             }}
           >
-            <span className="block bg-[#0b1430] p-[6px] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)] sm:p-[7px]">
+            <span className="block bg-[#0b1430] p-[5px] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)] sm:p-[6px]">
               <span className="relative block aspect-[3/4] overflow-hidden bg-[#0b1530]">
                 {visible && winner.photo_url ? (
                   <img src={winner.photo_url} alt={`${winner.name} 증명사진`} className="h-full w-full object-cover" loading="lazy" />
@@ -117,7 +117,7 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
             </span>
           </span>
         </span>
-        <span className="mt-4 block">
+        <span className="mt-3.5 block">
           {visible ? (
             <Nameplate order={winner.display_order} title={winner.name} subtitle={winner.dept} />
           ) : (
@@ -125,6 +125,13 @@ export function Frame({ winner, opened, index, show, highlight, onOpen }: Props)
           )}
         </span>
       </button>
+      {/* 바닥에 비치는 금색 빛 (작은 타원 반사) */}
+      <span
+        aria-hidden
+        data-frame-reflection
+        className="pointer-events-none absolute -bottom-9 left-1/2 h-7 w-[118%] -translate-x-1/2"
+        style={{ background: 'radial-gradient(50% 50% at 50% 50%, color-mix(in oklab, var(--c-accent) 26%, transparent), transparent 72%)' }}
+      />
     </motion.li>
   );
 }

@@ -176,6 +176,12 @@
     will-change: transform;
     animation: gallery-beam-sway var(--beam-dur, 12s) ease-in-out var(--beam-delay, 0s) infinite alternate;
   }
+  /* 태블릿 이상: 빔이 트러스에 달린 조명 기구 렌즈(StageDecor Truss)에서 나옴 */
+  @media (min-width: 768px) {
+    .gallery-beam {
+      top: 52px;
+    }
+  }
   .gallery-wash {
     position: absolute;
     top: 0;
@@ -215,6 +221,397 @@
     background: radial-gradient(80% 70% at 50% 35%, #ffffff, #dbe8ff 60%, rgba(219, 232, 255, 0.6));
     opacity: 0;
     animation: gallery-flash 16s linear -6s infinite;
+  }
+
+  /*
+   * 갤러리 무대 장식 (StageDecor.tsx) — 커튼 · 월계관 · 트러스/조명 기구 · 선버스트 · 바닥 · 컨페티 · 트로피
+   * transform·opacity 만 애니메이션, will-change 는 [data-anim] 요소에만.
+   * 좁은 화면: 커튼 폭을 줄이고 트러스(md 미만)·트로피·아르데코 장식(lg 미만)·벽의 별·렌즈 플레어(sm 미만)는 숨김
+   */
+  .stage-root {
+    --curtain-w: 4vw;
+  }
+  @media (min-width: 640px) {
+    .stage-root {
+      --curtain-w: 6vw;
+    }
+  }
+  @media (min-width: 1024px) {
+    .stage-root {
+      --curtain-w: min(10vw, 200px);
+    }
+  }
+  /* 입장: 층별로 0.3초 간격 */
+  .stage-decor {
+    opacity: 0;
+    transition: opacity 0.9s ease calc(var(--decor-order, 0) * 0.3s);
+  }
+  [data-stage-lit='true'] .stage-decor,
+  .stage-decor[data-lit='true'] {
+    opacity: 1;
+  }
+  .stage-decor > * {
+    pointer-events: none;
+  }
+  @keyframes stage-curtain-sway {
+    from {
+      transform: scaleX(0.99);
+    }
+    to {
+      transform: scaleX(1.01);
+    }
+  }
+  @keyframes stage-spin {
+    from {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+  @keyframes stage-twinkle {
+    0%,
+    100% {
+      opacity: 0.15;
+      transform: scale(0.82);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+  }
+  @keyframes stage-fall {
+    from {
+      transform: translate3d(0, -6vh, 0) rotate(0deg);
+    }
+    to {
+      transform: translate3d(var(--cf-drift, 0px), 112vh, 0) rotate(var(--cf-rot, 360deg));
+    }
+  }
+  /* 34초에 한 번, 약 0.8초 동안 (광과민성: 초당 3회 미만, 최대 투명도 0.55) */
+  @keyframes stage-shoot {
+    0%,
+    96% {
+      opacity: 0;
+      transform: rotate(18deg) translateX(0);
+    }
+    96.8% {
+      opacity: 0.55;
+    }
+    98.4% {
+      opacity: 0;
+      transform: rotate(18deg) translateX(46vw);
+    }
+    100% {
+      opacity: 0;
+      transform: rotate(18deg) translateX(46vw);
+    }
+  }
+  @keyframes stage-flare {
+    0% {
+      opacity: 0.25;
+      transform: translateX(14vw);
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 0.3;
+      transform: translateX(72vw);
+    }
+  }
+
+  /* ① 커튼 */
+  .stage-curtain {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--curtain-w);
+    background:
+      linear-gradient(to bottom, rgba(2, 5, 14, 0.6), rgba(2, 5, 14, 0.15) 24%, rgba(2, 5, 14, 0.15) 64%, rgba(120, 150, 230, 0.14) 92%, rgba(150, 175, 240, 0.08)),
+      repeating-linear-gradient(90deg, #03070f 0, #081536 8px, #10255a 17px, #0c1d49 26px, #060e26 34px, #03070f 42px);
+  }
+  /* 큰 흐림 그림자·흔들림은 태블릿 이상에서만 (모바일 커튼은 폭 4vw 라 흔들림이 보이지 않고, 저사양에서 합성 비용만 큼) */
+  @media (min-width: 640px) {
+    .stage-curtain {
+      box-shadow: 0 0 28px 8px rgba(2, 5, 14, 0.7);
+    }
+  }
+  .stage-curtain[data-side='left'] {
+    left: 0;
+    transform-origin: 0 50%;
+  }
+  .stage-curtain[data-side='right'] {
+    right: 0;
+    transform-origin: 100% 50%;
+  }
+  @media (min-width: 640px) {
+    .stage-curtain[data-anim] {
+      will-change: transform;
+      animation: stage-curtain-sway 14s ease-in-out infinite alternate;
+    }
+    .stage-curtain[data-side='right'][data-anim] {
+      animation-duration: 16s;
+      animation-delay: -5s;
+    }
+  }
+  .stage-curtain-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--c-accent-dark), var(--c-accent-light) 40%, var(--c-accent) 70%, var(--c-accent-dark));
+    opacity: 0.75;
+  }
+  .stage-curtain[data-side='left'] .stage-curtain-edge {
+    right: 0;
+  }
+  .stage-curtain[data-side='right'] .stage-curtain-edge {
+    left: 0;
+  }
+  .stage-tassel {
+    display: none;
+    position: absolute;
+    top: 52%;
+    width: 18px;
+    height: 48px;
+    opacity: 0.85;
+  }
+  .stage-curtain[data-side='left'] .stage-tassel {
+    right: -9px;
+  }
+  .stage-curtain[data-side='right'] .stage-tassel {
+    left: -9px;
+  }
+  @media (min-width: 640px) {
+    .stage-tassel {
+      display: block;
+    }
+  }
+
+  /* ② 월계관 */
+  .stage-laurel {
+    opacity: 0;
+  }
+  .stage-laurel[data-lit='true'] {
+    opacity: 0.6;
+  }
+
+  /* ③ 트러스 · 조명 기구 */
+  .stage-rig {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .stage-rig {
+      display: block;
+    }
+  }
+  .stage-truss {
+    position: absolute;
+    top: 14px;
+    left: var(--curtain-w);
+    right: var(--curtain-w);
+    width: calc(100% - var(--curtain-w) * 2);
+    height: 15px;
+    opacity: 0.55;
+  }
+  .stage-fixture {
+    position: absolute;
+    top: 22px;
+    width: 26px;
+    height: 37px;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+  }
+
+  /* ④ 선버스트 · 아르데코 · 벽의 별 */
+  .stage-sunburst {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: min(100vmax, 1600px);
+    height: min(100vmax, 1600px);
+    transform: translate(-50%, -50%);
+  }
+  /* 모바일: 작게, 회전 없이 (화면 전체 크기의 회전 레이어는 저사양 합성 비용이 큼) */
+  @media (max-width: 639.98px) {
+    .stage-sunburst {
+      width: 110vmax;
+      height: 110vmax;
+    }
+  }
+  @media (min-width: 640px) {
+    .stage-sunburst[data-anim] {
+      will-change: transform;
+      animation: stage-spin 160s linear infinite;
+    }
+  }
+  .stage-deco-corner {
+    display: none;
+    position: absolute;
+    top: 40px;
+    width: 120px;
+    height: 120px;
+    opacity: 0.32;
+  }
+  .stage-deco-corner[data-side='left'] {
+    left: calc(var(--curtain-w) + 10px);
+  }
+  .stage-deco-corner[data-side='right'] {
+    right: calc(var(--curtain-w) + 10px);
+    transform: scaleX(-1);
+  }
+  @media (min-width: 1024px) {
+    .stage-deco-corner {
+      display: block;
+    }
+  }
+  .stage-wall-stars {
+    display: none;
+  }
+  @media (min-width: 1024px) {
+    .stage-wall-stars {
+      display: block;
+    }
+  }
+  .stage-wall-star {
+    position: absolute;
+    opacity: 0.4;
+  }
+  .stage-wall-star[data-anim] {
+    will-change: transform, opacity;
+    animation: stage-twinkle var(--tw-dur, 6s) ease-in-out var(--tw-delay, 0s) infinite;
+  }
+
+  /* ⑤ 바닥 */
+  .stage-floor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 110px;
+  }
+  @media (min-width: 640px) {
+    .stage-floor {
+      height: 22vh;
+      min-height: 150px;
+    }
+  }
+  .stage-floor > * {
+    position: absolute;
+    inset: 0;
+  }
+  .stage-floor-base {
+    background: linear-gradient(to bottom, rgba(10, 20, 50, 0.9), #04070f 80%);
+  }
+  .stage-floor-grid {
+    width: 100%;
+    height: 100%;
+    opacity: 0.06;
+  }
+  .stage-floor-pool {
+    background:
+      radial-gradient(34% 70% at 50% 6%, rgba(219, 232, 255, 0.12), transparent 70%),
+      radial-gradient(52% 50% at 50% 0%, color-mix(in oklab, var(--c-accent) 9%, transparent), transparent 75%);
+  }
+  .stage-floor-gloss {
+    top: 38%;
+    bottom: auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 18%, rgba(219, 232, 255, 0.14) 40%, rgba(219, 232, 255, 0.2) 50%, rgba(219, 232, 255, 0.14) 60%, transparent 82%);
+  }
+  .stage-floor-edge {
+    bottom: auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(219, 232, 255, 0.22) 30%, rgba(219, 232, 255, 0.3) 50%, rgba(219, 232, 255, 0.22) 70%, transparent);
+  }
+
+  /* ⑥ 컨페티 · 유성 · 렌즈 플레어 */
+  .stage-confetti {
+    position: absolute;
+    inset: 0;
+  }
+  .stage-confetti-piece {
+    position: absolute;
+    top: 0;
+    opacity: var(--cf-alpha, 0.5);
+    line-height: 0;
+  }
+  .stage-confetti-piece[data-anim] {
+    will-change: transform;
+    animation: stage-fall var(--cf-dur, 20s) linear var(--cf-delay, 0s) infinite;
+  }
+  .stage-shooting-star {
+    position: absolute;
+    top: 9%;
+    left: 8%;
+    width: 150px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, rgba(219, 232, 255, 0.85));
+    opacity: 0;
+    transform-origin: 0 50%;
+  }
+  .stage-shooting-star[data-anim] {
+    will-change: transform, opacity;
+    animation: stage-shoot 34s linear -20s infinite;
+  }
+  .stage-lens-flare {
+    display: none;
+    position: absolute;
+    left: 0;
+    bottom: calc(22vh - 18px);
+    width: 64px;
+    height: 64px;
+    opacity: 0.3;
+  }
+  .stage-lens-flare > span {
+    position: absolute;
+    border-radius: 999px;
+  }
+  .stage-lens-flare > span:first-child {
+    inset: 0;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0, rgba(219, 232, 255, 0.18) 22%, transparent 62%);
+  }
+  .stage-lens-flare > span:last-child {
+    left: 96px;
+    top: 22px;
+    width: 22px;
+    height: 22px;
+    background: radial-gradient(circle, color-mix(in oklab, var(--c-accent-light) 22%, transparent), transparent 70%);
+  }
+  .stage-lens-flare[data-anim] {
+    will-change: transform, opacity;
+    animation: stage-flare 26s ease-in-out -8s infinite alternate;
+  }
+  @media (min-width: 640px) {
+    .stage-lens-flare {
+      display: block;
+    }
+  }
+
+  /* ⑦ 트로피 · 대좌 */
+  .stage-trophy {
+    display: none;
+    position: absolute;
+    bottom: 3vh;
+    height: min(15vh, 150px);
+    width: auto;
+    aspect-ratio: 80 / 140;
+  }
+  .stage-trophy[data-side='left'] {
+    left: calc(var(--curtain-w) + 2.2vw);
+  }
+  .stage-trophy[data-side='right'] {
+    right: calc(var(--curtain-w) + 2.2vw);
+  }
+  [data-stage-lit='true'] .stage-trophy {
+    opacity: 0.26;
+  }
+  @media (min-width: 1024px) {
+    .stage-trophy {
+      display: block;
+    }
   }
 
   /* 금속 질감 — 액자·명패·버튼·강조에만 */
@@ -332,5 +729,19 @@
   }
   .gallery-lights {
     transition: none !important;
+  }
+}
+
+/* 움직임 줄이기: 장식은 정지된 것(커튼·월계관·트러스·바닥·선버스트)만, 입자 계열은 숨김, 순서 등장 페이드 없음 */
+@media (prefers-reduced-motion: reduce) {
+  .stage-decor {
+    transition: none !important;
+  }
+  [data-anim] {
+    animation: none !important;
+  }
+  .stage-confetti,
+  .stage-wall-stars {
+    display: none !important;
   }
 }
